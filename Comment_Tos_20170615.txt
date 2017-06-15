@@ -1,0 +1,187 @@
+15-Jun-2017
+
+Dear Mr. Kim:
+
+I write you in regards to manuscript # TOS-2017-05-0052 entitled "SPFTL: Utilizing Subpage Programming to Prolong the Lifetime of Embedded NAND Flash-based Storage" which you submitted to the Transactions on Storage.
+
+In view of the criticisms of the reviewer(s) found at the bottom of this letter, your manuscript has been denied publication in the Transactions on Storage.
+
+Thank you for considering the Transactions on Storage for the publication of your research.  I hope the outcome of this specific submission will not discourage you from the submission of future manuscripts.
+
+Sincerely,
+Prof. Sam H. Noh
+Editor in Chief, Transactions on Storage
+samhnoh.tpc@gmail.com, samnoh@gmail.com
+
+
+Associate Editor's Comments to the Author:
+
+Associate Editor
+Comments to the Author:
+This manuscript presented a design solution that could utilize NAND flash memory subpage programmability to better handle FTL metadata. Unfortunately, the reviewers do not observe sufficient innovative ideas that justify its publication in this journal. Meanwhile, the reviewers found this manuscript poorly written and hard to follow.
+
+
+Reviewer(s)' Comments to Author:
+
+Reviewer: 1
+
+Comments to the Author
+The paper discusses an interesting problem on meta data writes in eMMC cards in mobile devices. 
+The meta data writes to flash memories contribute to significant number of writes and incur a
+lot of lifetime overheads, while only a portion of page is updated through a meta data update. 
+They propose a subpage programming mechanism to only write to a portion of a page (partition) 
+and hence save other partitions for later writes. This way, they improve the endurance of flash
+memory.
+==========================================================
+
+Strengths:
+
++The problem is interesting and its importance is evident
+
++The paper reads well and is easy to follow 
+
+Weaknesses:
+
+-Not providing enough details on many sections
+
+-Not compared and contrasted with partial page programming
+
+-Space Underutilization
+=========================================================
+
+Comments for the authors:
+
+-As you only address the lifetime improvement of eMMC devices, these cards which are more used in smart phones that are typically used not more than 2 to 3 years,
+how important is it to improve the endurance of these cards? Are these cards really wear out before someone needs to replace his/her phone? That might be interesting 
+to also discuss this fact while discussing the lifetime of eMMC cards. IMHO performance and energy optimization with these cards are of more significance.
+
+-The details of underlying phisyques about sub-block erase and partial writes are skipped and the reader cannot find out how programming/erasing subblocks does not impact
+the rest of the block.
+
+-Not compared and contrasted with partial page programming. On the other hand, only using a portion of block seems to lead in space under utilization while exploiting the 
+reprogramming capability of flash memories, there is no need to only program a part of block and once it's worn out, move to the next partition. 
+
+-There is a papaer which employs PCM as log buffer of flash memories. Using this mechanism, the small-sized metadata updates can be covered and no need to update the flash
+page frequently. I am wondering if such an approach is applicable to the eMMC cards.
+
+-I could not find sufficient details on the simulator you have used and GC and wear levelling algorithms through out the paper. Adding these details, makes the paper more solid.
+Also there was no details on traces you have collected. Plus, some information such as, number of users, type of applications used to collect traces are missing in the paper.
+
+-Not discussed the scalability issues when subpage is 1/Nth of the page, how to handle mapping tables?
+==========================================
+
+Questions for Authors?
+-How did you identify/differentiate metadata writes from actual writes in the real setting you collected traces? The details are missing in the paper.
+
+-Why not using subblock erase rather than whole block erase when only a partion is filled and need be erased? How your approach compares to sub-block erase mechanism?
+
+-When only a portion of page is changed and the rest is same...how to attach these things together later on to read them? Does your mapping strategies support this?
+
+-My take is that your approach does not necessarily redue the erase counts, correct? Rather, with erasing the filled partition. Doesn't that impact the rest of block in terms
+of endurance. Please elaborate this in the paper. Also, 
+
+-Why amount of meta data writes in pattern B is larger than pattern A while A is random and B is sequential? figure 12.
+
+
+
+Reviewer: 2
+
+Comments to the Author
+This paper presented a work in exploiting subpage programming scheme to reduce the metadata operations on flash memory. With this approach, the lifetime and performance can be improved.
+The paper presented a subpage programming scheme for flash memory. However, this is not well presented and hard to understand.
+The paper presented to solve a good problem: the large amount of metadata in the controller. However, it is really hard for the reviewer to understand how this is achieved by the proposed approach. Most part of the paper are discussing FTL design and very simple idea. There are no clear approaches on discussing how to reduce the metadata. The whole process of the work is also not clear.
+
+In addition to above problem, there are many more comments as follows:
+1 How did the BSI is maintained and updated?
+2 In Section 5.1, the work uses four partitions and uses separated GC in each partition. One issue here is for wear leveling for whole flash memory. If one partition is worn quickly, flash memory cannot be used.
+3 The functions and details for the BIT, GXT should be presented ahead before their utilization. 
+4 In the metadata reliability discussion part, the authors presented that they can avoid the sudden power issue. However, the novelty and presentation are not clear to the reviewer. 
+5 For the GXT issue, it is really hard to understand. The authors presented they can be relaxed by logging. However, it is not will presented.
+6 The setup of the experiment should include the settings for the four partitions, details on the size of internal memory, including what is the size for mapping and data and so on.
+7 The simulator used in the work is also not clear. Are there any plane, die, channel or chip organization?
+8 More experiment should be done with more smaller subpage size to show the scalability of the work.
+Other Minor Comments:
+	1 performend -> performed
+	2 Figures are too far from their first references.
+	3 MSB is first used in page 4 without explanation.
+	4 a LPN -> an LPN
+	5 Figure 3(b) is really hard to understand. Please use a more clear way to present it.
+	6 an unique -> a unique in page 7
+
+Reviewer: 3
+
+Comments to the Author
+Some flash devices (eMMCs) have very small RAM, which cannot hold full FTL metadata. Therefore, the full metadata is stored on flash and the RAM only serves as a cache. The authors find that metadata writes account for a large portion of flash writes. In addition, they find that only a very small portion of metadata is changed between flushing of metadata. The authors propose to use subpage programming to reduce metadata writes, and thus expand the lifetime of flash. 
+
+The idea presented in the paper is an application of their previous work on subpage programming. It is nice that they observed that metadata only changes a little bit between flushes. However, this paper has several problems.
+
+First, this paper lacks contributions. SPFTL adds some functionalities to DFTL, such as accounting of erase count and subpage programming. However, these functionalities are trivial to implement. The authors use a lot of space to describe the design, but it does not provide any new insights. For example, when does SPFTL switch partitions? What are the error rates of partitions and how do they affect the switching time? Answering these questions are more important than describing the trivial extension of DFTL.
+
+Second, the writing is poor. Some sentences are hard to parse, especially in the evaluation section. I am listing a sample of poorly written sentences at the end of this review. 
+
+Third, the authors needs to clarify some technical details. For example, I don't think the solution in the paper guarantees metadata consistency. For example, what if there is a power failure after writing back CPMT and before updating the directories? In fact, there are "transactions" here. How do you recover from failed transactions?
+
+
+Some other questions: 
+
+What's the memory size in the simulation?
+
+What's the description of pattern-c in Table 2?
+
+
+Sample of problematic writing:
+
+"Due to the subpage, the half of the page, we can assume that SPFTL maximally reduce the amount of metadata by up to 50% of SPFTL-Base metadata."
+
+"the total written amounts of SPFTL metadata are less than SPFTL-Base as 20.5%, 38.1%, and 42.3% of SPFTL-Base metadata from the high locality"
+
+"Note that we first perform the fully random workload to make the *precondition*"
+
+Figure 15: why having "(KB)" in Y-label?
+
+"The written amount by NAND page programming is too *enough* to entirely store FTL metadata that are just modified or updated by FTL functions."
+
+"is under than the size of the page"
+
+...
+
+
+
+Reviewer: 4
+
+Comments to the Author
+This paper proposed a new FTL design scheme to reduce the data amount written into flash storage in embedded system. This paper revealed a good viewpoint by observing that in eMMC cards, available memory space is so limited that FTL metadata has to be flushed back to flash frequently. And thus the repetitive metadata sync-write occupies a high percentage of write traffic and waste up flash PE cycles.
+
+pros:
++ It is kind of surprising to see FTL metadata occupies such a big percent. 
++ Generally speaking, this paper has a clear flow and easy to understand. The idea can be understood relatively quickly and is a clever application of the partial-programming that has appeared over the last few years. 
+
+cons:
+- It looks this idea resides on the assumption that "FTL memory is really limited and has to write back metadata a lot to guarantee consistency". I feel this assumption may not be very correct in some phones/tablets, whose storage is protected by a backup battery or eMMC’s DRAM is quite large (considered that there is a large buffer)
+- Is it subpage programming only used for FTL metadata? Why not extend to other user data? As revealed in many publications, a lot of general application's writes are also "small and repetitive"
+
+
+Specific comments:
+
+* In Page4 and some other places, author would like to use the term 'erase block'. It takes me a while to realize it's another name of 'unused block'
+
+* I suggest making the title of Fig3 more informative by saying "FTL metadata" instead of metadata, which could lead to confusion if reader didn't cover Sec2.3 carefully
+
+* Page 7, Line 21, I believe it is the "simulated metadata" which is generated by a simulator. If so please elaborate a bit further here
+
+* What kind of hardware support does this new FTL need from SSD controller?
+
+* foot index in Fig5 and 6 is hard to see, please revise
+
+* P13 Line 30, "If necessary", does the author suggest that subpage programming also works for MLC?  I think this subpage program is not allowed in MLC?
+
+* In Table 1, what is "serial access (Byte Transfer)"? and how was it obtained?
+
+* Page 15, Line7, I guess author intend to say "PMT and BIT" instead of "CPMT and CBIT"?
+
+* Page 15 Line 25, "and many 39%"? is this a typo here?
+
+* In section 6.2, it looks the 48 bit BCH is quite outdated since BCH is not suitable for codeword whose length is 2KB even 4kB. And what is the ECC protection granularity in your simulation?
+
+* In Fig.7, I am still not clear why pong-pong is better than ping-pong after reading the explanations in Page-16. If each subpage is protected independently and we assume the worst case RBER is the same for all subpages, I am not sure why the endurance cycle is different. Please elaborate.
+
