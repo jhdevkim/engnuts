@@ -104,10 +104,11 @@ How your approach compares to sub-block erase mechanism?
 ; sub-block도 page programming을 사용하므로, subpage 처럼 쓰는 양을 줄일 수는 없다.
 ; sub-block은 특별히 gc의 성능을 개선한다.
 
--When only a portion of page is changed and the rest is same...how to attach these things together later on to read them? Does your mapping strategies support this?
+-When only a portion of page is changed and the rest is same...how to attach these things together later on to read them?
+Does your mapping strategies support this?
 
--My take is that your approach does not necessarily redue the erase counts, correct? Rather, with erasing the filled partition. Doesn't that impact the rest of block in terms
-of endurance. Please elaborate this in the paper. Also, 
+-My take is that your approach does not necessarily redue the erase counts, correct? Rather, with erasing the filled partition. 
+Doesn't that impact the rest of block in terms of endurance. Please elaborate this in the paper. Also, 
 
 -Why amount of meta data writes in pattern B is larger than pattern A while A is random and B is sequential? figure 12.
 
