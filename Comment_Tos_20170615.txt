@@ -81,16 +81,19 @@ there is no need to only program a part of block and once it's worn out, move to
 Using this mechanism, the small-sized metadata updates can be covered and 
 no need to update the flash page frequently. 
 I am wondering if such an approach is applicable to the eMMC cards.
-
+; 지금은 PCM 장치를 eMMC에서 사용하진 않는다.
+; PCM을 사용하여 FTL metadata를 관리한다면, 현재와는 다른 FTL이 요구된다.
+; PCM와 NAND/SRAM으로 구성된 서로 다른 저장 장치에서의 metadata 비교가 된다.
 
 -I could not find sufficient details on the simulator you have used and 
 GC and wear levelling algorithms through out the paper. 
 Adding these details, makes the paper more solid.
 Also there was no details on traces you have collected. 
 Plus, some information such as, number of users, type of applications used to collect traces are missing in the paper.
+; 시뮬레이터 및 Trace 정보를 보강한다.
 
 -Not discussed the scalability issues when subpage is 1/Nth of the page, how to handle mapping tables?
-
+; GXT Issue를 보강한다.
 
 ==========================================
 
