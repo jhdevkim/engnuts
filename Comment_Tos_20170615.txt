@@ -75,19 +75,33 @@ there is no need to only program a part of block and once it's worn out, move to
 ;
 
 
--There is a papaer which employs PCM as log buffer of flash memories. Using this mechanism, the small-sized metadata updates can be covered and no need to update the flash
-page frequently. I am wondering if such an approach is applicable to the eMMC cards.
+-There is a papaer which employs PCM as log buffer of flash memories. 
+Using this mechanism, the small-sized metadata updates can be covered and 
+no need to update the flash page frequently. 
+I am wondering if such an approach is applicable to the eMMC cards.
 
--I could not find sufficient details on the simulator you have used and GC and wear levelling algorithms through out the paper. Adding these details, makes the paper more solid.
-Also there was no details on traces you have collected. Plus, some information such as, number of users, type of applications used to collect traces are missing in the paper.
+
+-I could not find sufficient details on the simulator you have used and 
+GC and wear levelling algorithms through out the paper. 
+Adding these details, makes the paper more solid.
+Also there was no details on traces you have collected. 
+Plus, some information such as, number of users, type of applications used to collect traces are missing in the paper.
 
 -Not discussed the scalability issues when subpage is 1/Nth of the page, how to handle mapping tables?
+
+
 ==========================================
 
 Questions for Authors?
--How did you identify/differentiate metadata writes from actual writes in the real setting you collected traces? The details are missing in the paper.
+-How did you identify/differentiate metadata writes from actual writes in the real setting you collected traces? 
+The details are missing in the paper.
 
--Why not using subblock erase rather than whole block erase when only a partion is filled and need be erased? How your approach compares to sub-block erase mechanism?
+-Why not using subblock erase rather than whole block erase when only a partion is filled and need be erased?
+How your approach compares to sub-block erase mechanism?
+; sub-block은 page를 n개를 나누어 수행되는 것이다.
+; sub-page 파티션 구성과는 다르다.
+; sub-block도 page programming을 사용하므로, subpage 처럼 쓰는 양을 줄일 수는 없다.
+; sub-block은 특별히 gc의 성능을 개선한다.
 
 -When only a portion of page is changed and the rest is same...how to attach these things together later on to read them? Does your mapping strategies support this?
 
