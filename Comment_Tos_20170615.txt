@@ -20,8 +20,9 @@ Associate Editor's Comments to the Author:
 
 Associate Editor
 Comments to the Author:
-This manuscript presented a design solution that could utilize NAND flash memory subpage programmability to better handle FTL metadata. Unfortunately, the reviewers do not observe sufficient innovative ideas that justify its publication in this journal.
-Meanwhile, the reviewers found this manuscript poorly written and hard to follow.
+This manuscript presented a design solution that could utilize NAND flash memory subpage programmability 
+to better handle FTL metadata. Unfortunately, the reviewers do not observe sufficient innovative ideas that justify its publication 
+in this journal. Meanwhile, the reviewers found this manuscript poorly written and hard to follow.
 
 
 Reviewer(s)' Comments to Author:
