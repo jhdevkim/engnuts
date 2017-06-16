@@ -164,6 +164,7 @@ Sample of problematic writing:
 "Due to the subpage, the half of the page, we can assume that SPFTL maximally reduce the amount of metadata by up to 
 50% of SPFTL-Base metadata."
 ; If the subpage size is equivalent of half of a page, SPFTL could maximally reduce the amount of..
+; For a half-page sized subpage, SPFTL could maximally reduce the amount of..
 
 "the total written amounts of SPFTL metadata are less than SPFTL-Base as 20.5%, 38.1%, and 42.3% of SPFTL-Base metadata 
 from the high locality"
