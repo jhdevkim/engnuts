@@ -61,11 +61,19 @@ IMHO performance and energy optimization with these cards are of more significan
 ;일반적인 사용자 이외에 파워 또는 헤비 유저에게 맞추어져야 한다.
 ;Flash가 Shrink되면서 Endurance는 낮아지고 있으나 사용자의 사용량은 많아지고 있다.
 
--The details of underlying phisyques about sub-block erase and partial writes are skipped and the reader cannot find out how programming/erasing subblocks does not impact
-the rest of the block.
+-The details of underlying phisyques about sub-block erase and partial writes are skipped 
+and the reader cannot find out how programming/erasing subblocks does not impact the rest of the block.
+; subpage는 논리적으로 분할 된 것이다.
+; sub-block erase을 사용하지 않으며, block erase를 사용한다.
+; 따라서, NAND가 제공하는 programming/erase blocks하는 기능이 동일하게 사용될 뿐이다.
+; 현재 통용되는 NAND는 block 단위로만 erase 기능을 제공하며, sub-block erase를 제공하고 있지 않다.
 
--Not compared and contrasted with partial page programming. On the other hand, only using a portion of block seems to lead in space under utilization while exploiting the 
-reprogramming capability of flash memories, there is no need to only program a part of block and once it's worn out, move to the next partition. 
+-Not compared and contrasted with partial page programming. 
+On the other hand, only using a portion of block seems to lead in space under utilization 
+while exploiting the reprogramming capability of flash memories, 
+there is no need to only program a part of block and once it's worn out, move to the next partition. 
+;
+
 
 -There is a papaer which employs PCM as log buffer of flash memories. Using this mechanism, the small-sized metadata updates can be covered and no need to update the flash
 page frequently. I am wondering if such an approach is applicable to the eMMC cards.
