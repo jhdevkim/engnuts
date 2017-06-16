@@ -73,7 +73,8 @@ and the reader cannot find out how programming/erasing subblocks does not impact
 On the other hand, only using a portion of block seems to lead in space under utilization 
 while exploiting the reprogramming capability of flash memories, 
 there is no need to only program a part of block and once it's worn out, move to the next partition. 
-;
+; subpage와 partial page programming 중에 subpage가 endurance가 좋으므로 비교할 필요가 없다.
+; 불필요한 저장량을 줄이는 방법을 사용하므로 subpage programming은 의미가 있다.
 
 
 -There is a papaer which employs PCM as log buffer of flash memories. 
