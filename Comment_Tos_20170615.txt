@@ -2,23 +2,26 @@
 
 Dear Mr. Kim:
 
-I write you in regards to manuscript # TOS-2017-05-0052 entitled "SPFTL: Utilizing Subpage Programming to Prolong the Lifetime of Embedded NAND Flash-based Storage" which you submitted to the Transactions on Storage.
+I write you in regards to manuscript # TOS-2017-05-0052 entitled "SPFTL: Utilizing Subpage Programming to 
+Prolong the Lifetime of Embedded NAND Flash-based Storage" which you submitted to the Transactions on Storage.
 
-In view of the criticisms of the reviewer(s) found at the bottom of this letter, your manuscript has been denied publication in the Transactions on Storage.
+In view of the criticisms of the reviewer(s) found at the bottom of this letter, 
+your manuscript has been denied publication in the Transactions on Storage.
 
-Thank you for considering the Transactions on Storage for the publication of your research.  I hope the outcome of this specific submission will not discourage you from the submission of future manuscripts.
+Thank you for considering the Transactions on Storage for the publication of your research.  
+I hope the outcome of this specific submission will not discourage you from the submission of future manuscripts.
 
 Sincerely,
 Prof. Sam H. Noh
 Editor in Chief, Transactions on Storage
 samhnoh.tpc@gmail.com, samnoh@gmail.com
 
-
 Associate Editor's Comments to the Author:
 
 Associate Editor
 Comments to the Author:
-This manuscript presented a design solution that could utilize NAND flash memory subpage programmability to better handle FTL metadata. Unfortunately, the reviewers do not observe sufficient innovative ideas that justify its publication in this journal. Meanwhile, the reviewers found this manuscript poorly written and hard to follow.
+This manuscript presented a design solution that could utilize NAND flash memory subpage programmability to better handle FTL metadata. Unfortunately, the reviewers do not observe sufficient innovative ideas that justify its publication in this journal.
+Meanwhile, the reviewers found this manuscript poorly written and hard to follow.
 
 
 Reviewer(s)' Comments to Author:
@@ -37,23 +40,26 @@ memory.
 Strengths:
 
 +The problem is interesting and its importance is evident
-
 +The paper reads well and is easy to follow 
 
 Weaknesses:
 
 -Not providing enough details on many sections
-
 -Not compared and contrasted with partial page programming
-
 -Space Underutilization
 =========================================================
 
 Comments for the authors:
 
--As you only address the lifetime improvement of eMMC devices, these cards which are more used in smart phones that are typically used not more than 2 to 3 years,
-how important is it to improve the endurance of these cards? Are these cards really wear out before someone needs to replace his/her phone? That might be interesting 
-to also discuss this fact while discussing the lifetime of eMMC cards. IMHO performance and energy optimization with these cards are of more significance.
+-As you only address the lifetime improvement of eMMC devices, 
+these cards which are more used in smart phones that are typically used not more than 2 to 3 years,
+how important is it to improve the endurance of these cards?
+Are these cards really wear out before someone needs to replace his/her phone? 
+That might be interesting to also discuss this fact while discussing the lifetime of eMMC cards. 
+IMHO performance and energy optimization with these cards are of more significance.
+;수명은 사용량과 관계가 있다. 스토리지의 신뢰도는 매우 중요하므로, 
+;일반적인 사용자 이외에 파워 또는 헤비 유저에게 맞추어져야 한다.
+;Flash가 Shrink되면서 Endurance는 낮아지고 있으나 사용자의 사용량은 많아지고 있다.
 
 -The details of underlying phisyques about sub-block erase and partial writes are skipped and the reader cannot find out how programming/erasing subblocks does not impact
 the rest of the block.
