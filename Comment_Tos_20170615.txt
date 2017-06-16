@@ -161,15 +161,19 @@ What's the description of pattern-c in Table 2?
 
 Sample of problematic writing:
 
-"Due to the subpage, the half of the page, we can assume that SPFTL maximally reduce the amount of metadata by up to 50% of SPFTL-Base metadata."
+"Due to the subpage, the half of the page, we can assume that SPFTL maximally reduce the amount of metadata by up to 
+50% of SPFTL-Base metadata."
+; If the subpage size is equivalent of half of a page, SPFTL could maximally reduce the amount of..
 
-"the total written amounts of SPFTL metadata are less than SPFTL-Base as 20.5%, 38.1%, and 42.3% of SPFTL-Base metadata from the high locality"
+"the total written amounts of SPFTL metadata are less than SPFTL-Base as 20.5%, 38.1%, and 42.3% of SPFTL-Base metadata 
+from the high locality"
 
 "Note that we first perform the fully random workload to make the *precondition*"
 
 Figure 15: why having "(KB)" in Y-label?
 
-"The written amount by NAND page programming is too *enough* to entirely store FTL metadata that are just modified or updated by FTL functions."
+"The written amount by NAND page programming is too *enough* to entirely store FTL metadata 
+that are just modified or updated by FTL functions."
 
 "is under than the size of the page"
 
