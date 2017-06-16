@@ -100,6 +100,8 @@ Plus, some information such as, number of users, type of applications used to co
 Questions for Authors?
 -How did you identify/differentiate metadata writes from actual writes in the real setting you collected traces? 
 The details are missing in the paper.
+; 실질적인 사용자 데이터에서 metadata를 분리할 필요가 없다.
+; SPFTL이 사용하는 metadata 자체만 subpage programming을 사용한다.
 
 -Why not using subblock erase rather than whole block erase when only a partion is filled and need be erased?
 How your approach compares to sub-block erase mechanism?
@@ -110,10 +112,11 @@ How your approach compares to sub-block erase mechanism?
 
 -When only a portion of page is changed and the rest is same...how to attach these things together later on to read them?
 Does your mapping strategies support this?
+; CPMT, BPMT metadata가 저장될 때 변경된 부분과 변경되지 않은 부분이 모두 함께 저장된다.
+; (논문에 명시되어 있는데, 보강이 필요?)
 
 -My take is that your approach does not necessarily redue the erase counts, correct? Rather, with erasing the filled partition. 
 Doesn't that impact the rest of block in terms of endurance. Please elaborate this in the paper. Also, 
-
 -Why amount of meta data writes in pattern B is larger than pattern A while A is random and B is sequential? figure 12.
 
 
