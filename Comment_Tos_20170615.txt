@@ -102,6 +102,7 @@ Questions for Authors?
 The details are missing in the paper.
 ; 실질적인 사용자 데이터에서 metadata를 분리할 필요가 없다.
 ; SPFTL이 사용하는 metadata 자체만 subpage programming을 사용한다.
+; Its written amount can be detected in FTL simulator when metadata writes.
 
 -Why not using subblock erase rather than whole block erase when only a partion is filled and need be erased?
 How your approach compares to sub-block erase mechanism?
@@ -118,7 +119,15 @@ Does your mapping strategies support this?
 -My take is that your approach does not necessarily redue the erase counts, correct? Rather, with erasing the filled partition. 
 Doesn't that impact the rest of block in terms of endurance. Please elaborate this in the paper. Also, 
 -Why amount of meta data writes in pattern B is larger than pattern A while A is random and B is sequential? figure 12.
+; sub-block erase가 아니며, erase operation을 사용하므로 나머지 block에 영향은 기존 sub-page endurance 실험해서 확인되었다.
+; Precondition과 Written amount도 metadata writes에 영향을 끼친다. 16% sequential 비율보다 B의 written amount가 48.9%가 더 많기 떄문이다. 
 
+;1번 리뷰어
+;1. 논문의 Endurance 필요성을 Intro. or Motivation에서 더 강조할 것
+;2. Sub-block erase를 연상시키므로, subpage programming을 조금 더 자세히 설명할 것
+;3. GXT issue와 Simulator를 자세히 할 것
+;4. Metadata가 FTL 자체가 생성한다는 것을 강조할 것
+;5. Embedded의 H/W가 현재는 어떻게 되는지 SRAM+NAND만 이런 부분을 설명을 넣을 것
 
 
 Reviewer: 2
