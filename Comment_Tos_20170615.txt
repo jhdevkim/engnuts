@@ -133,13 +133,29 @@ Doesn't that impact the rest of block in terms of endurance. Please elaborate th
 Reviewer: 2
 
 Comments to the Author
-This paper presented a work in exploiting subpage programming scheme to reduce the metadata operations on flash memory. With this approach, the lifetime and performance can be improved.
-The paper presented a subpage programming scheme for flash memory. However, this is not well presented and hard to understand.
-The paper presented to solve a good problem: the large amount of metadata in the controller. However, it is really hard for the reviewer to understand how this is achieved by the proposed approach. Most part of the paper are discussing FTL design and very simple idea. There are no clear approaches on discussing how to reduce the metadata. The whole process of the work is also not clear.
+This paper presented a work in exploiting subpage programming scheme to reduce the metadata operations on flash memory. 
+With this approach, the lifetime and performance can be improved.
+The paper presented a subpage programming scheme for flash memory. 
+However, this is not well presented and hard to understand.
+; subpage 섹션에서 subpage programming을 조금 더 상세히 설명한다.
+
+The paper presented to solve a good problem: 
+the large amount of metadata in the controller. 
+However, it is really hard for the reviewer to understand how this is achieved by the proposed approach. 
+; subpage programming 부분과 FTL 연결점에서 어떤 식으로 줄일 수 있는지 설명한다.
+; 즉, 변하는 부분이 적어서 subpage programing으로 대체 가능하므로, half size로 준다는 글들을 포함시킨다.
+
+Most part of the paper are discussing FTL design and very simple idea. 
+There are no clear approaches on discussing how to reduce the metadata. 
+The whole process of the work is also not clear.
+; ... ?
 
 In addition to above problem, there are many more comments as follows:
 1 How did the BSI is maintained and updated?
-2 In Section 5.1, the work uses four partitions and uses separated GC in each partition. One issue here is for wear leveling for whole flash memory. If one partition is worn quickly, flash memory cannot be used.
+;
+2 In Section 5.1, the work uses four partitions and uses separated GC in each partition. 
+One issue here is for wear leveling for whole flash memory. 
+If one partition is worn quickly, flash memory cannot be used.
 3 The functions and details for the BIT, GXT should be presented ahead before their utilization. 
 4 In the metadata reliability discussion part, the authors presented that they can avoid the sudden power issue. However, the novelty and presentation are not clear to the reviewer. 
 5 For the GXT issue, it is really hard to understand. The authors presented they can be relaxed by logging. However, it is not will presented.
