@@ -196,6 +196,7 @@ Other Minor Comments:
 ;2. GXT Issue와 Reliability를 조금더 자세하게 보강한다.
 ;3. Block layout을 넣는다.
 ;4. 시뮬레이션에서 Chip 관련 사항을 자세하게 보강한다.
+;5. Minor  수정
 
 Reviewer: 3
 
@@ -212,28 +213,30 @@ However, this paper has several problems.
 
 First, this paper lacks contributions. SPFTL adds some functionalities to DFTL, 
 such as accounting of erase count and subpage programming. However, these functionalities are trivial to implement. 
+; 기존 original FTL의 변경을 최소화 하고 subpage programming을 적용하는 것이 목적
+; 현재 논문은 새로운 FTL를 만들어 낸다는 것으로 글을 느끼는 것이 아닌지 생각된다.
 
 The authors use a lot of space to describe the design, but it does not provide any new insights. 
 For example, when does SPFTL switch partitions? 
 What are the error rates of partitions and how do they affect the switching time? 
 Answering these questions are more important than describing the trivial extension of DFTL.
+; ping-pong 표현을 FTL에도 설명이 필요할 것으로 보인다.
 
 Second, the writing is poor. Some sentences are hard to parse, especially in the evaluation section. 
 I am listing a sample of poorly written sentences at the end of this review. 
+; 다시 한번 문장을 고친다. 교정을 맡겨야 할지도 모른다.
 
 Third, the authors needs to clarify some technical details. 
 For example, I don't think the solution in the paper guarantees metadata consistency. 
 For example, what if there is a power failure after writing back CPMT and before updating the directories? 
 In fact, there are "transactions" here. How do you recover from failed transactions?
-
+; Metadata reliability를 scanning을 통해 자세하게 설명한다.
 
 Some other questions: 
 
 What's the memory size in the simulation?
-;
-
 What's the description of pattern-c in Table 2?
-;
+; 시뮬레이션 SRAM 크기 설명 보강, Pattern-C를 Normal Pattern이나 다른 적합한 것으로 표시해야 한다.
 
 Sample of problematic writing:
 
@@ -256,6 +259,11 @@ that are just modified or updated by FTL functions."
 
 ...
 
+; 리뷰어 3
+; 1. 논문의 목적을 다시 표현한다. 새로운 FTL보단 기존에서 최소 변경으로 subpage 적용.
+; 2. ping-pong 표현 FTL에서도 사용할 것
+; 3. 문장 교정 맡겨야 할 것 같다.
+; 4. 시뮬레이션 SRAM 사이즈 명시, 자세하게 변경한다.
 
 
 Reviewer: 4
