@@ -320,14 +320,24 @@ I think this subpage program is not allowed in MLC?
 ; NAND로 바이트 I/O 단위로 전송을 의미, H/W Parallel과 혼동을 줄 수 있다. 변경할 것. 
 
 * Page 15, Line7, I guess author intend to say "PMT and BIT" instead of "CPMT and CBIT"?
+; 수정할 것
 
 * Page 15 Line 25, "and many 39%"? is this a typo here?
+; 수정할 것
 
 * In section 6.2, it looks the 48 bit BCH is quite outdated since BCH is not suitable for codeword whose length is 2KB even 4kB. 
 And what is the ECC protection granularity in your simulation?
+; subpage programming에서 2KB BCH ECC를 사용했다. FTL simulation은 Erase count 비교를 통해 수명을 비교한다.
 
 * In Fig.7, I am still not clear why pong-pong is better than ping-pong after reading the explanations in Page-16. 
 If each subpage is protected independently and we assume the worst case RBER is the same for all subpages, 
 I am not sure why the endurance cycle is different. Please elaborate.
+; Subpage Section에서 disturbance 관련 내용을 추가하고, subpage 결과를 조금 더 추가한다.
+
+; 리뷰어 4
+; 1. 논문 Intro or Motive에서 consistency 보장을 위한 metadata writes 예를 추가한다.
+; 2. Userdata에 적용하지 않은 이유가 적합하다면 언급한다.
+; 3. Minor한 수정 사항들을 적용한다.
+
 
 
