@@ -284,11 +284,13 @@ cons:
 - It looks this idea resides on the assumption that "FTL memory is really limited and has to write back metadata a lot 
 to guarantee consistency". I feel this assumption may not be very correct in some phones/tablets, 
 whose storage is protected by a backup battery or eMMC’s DRAM is quite large (considered that there is a large buffer)
-; consistency, transaction, reliable writes for eMMC,
+; 인트로에 consistency를 위한 metadata writes의 예를 명시한다. 
+; 예는 eMMC의 reliable writes 같은 또는 transation을 보장해야 하는 writes (boot partition)
 
 - Is it subpage programming only used for FTL metadata? Why not extend to other user data?
 As revealed in many publications, a lot of general application's writes are also "small and repetitive"
-
+; data가 불필요하게 많이 적히는 곳은 subpage를 사용할 수 있다. 
+; userdata는 여러 형태로 저장될 수 있기 때문에, subpage를 적용을 피했고, FTL metadata에만 적용했다.
 
 Specific comments:
 
