@@ -8,4 +8,6 @@ All papers must clearly describe how it applies to Consumer Electronics.
 https://www.ieee.org/documents/trans_jour.docx
 http://www.cloznet.com/ieee-ce
 
+3. Check Math, Common Mistakes
+
 
