@@ -1,0 +1,18 @@
+
+
+VIII.	CONCLUSION
+FTL usually exploits NAND page programming to store FTL metadata into NAND flash memory. 
+However, the write amount of NAND page is redundant to store FTL metadata that are just modified or updated by FTL operations.
+The average amount of FTL metadata changed per write is much less than NAND page and the maximum size is only 1KiB 
+in SPFTL-BASE evaluation. However, total amounts of FTL metadata writes are so generous and close to 46.7% of 
+host data in SPFTL-BASE and 60.9% in case of commercial eMMCs.
+
+We propose a novel SPFTL that utilizes subpage programming to decrease the written amount of FTL metadata writes 
+and therefore prolong the lifetime of embedded NAND flash-based storage. SPFTL is implemented with minimizing 
+the modification in the original SPFTL-BASE. 
+
+In the evaluations for real I/O traces, 
+SPFTL reduces the average amount of metadata by up to 43.4% of SPFTL-BASE. Even though the enhanced lifetime of SPFTL 
+depends on the increased the endurance cycle obtained from subpage programming, 
+SPFTL improves the average lifetime of embedded NAND flash-based storage by to 18.4% in the environment of 
+the pong-pong order using a 20nm class NAND chip.
