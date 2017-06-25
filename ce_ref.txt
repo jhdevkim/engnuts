@@ -1,0 +1,17 @@
+
+
+
+[10] M. Murugan and D. H. Du, “Rejuvenator: A static wear leveling algorithm for NAND flash memory with minimized overhead,” in MSST, pp. 1-12, 2011.
+[11] J.-Y. Ha, Y.-S. Lee, and J.-S. Kim, “Deduplication with block-Level content-aware chunking for solid state drives (SSDs),” in HPCC_EUC, pp. 1982-1989, 2013. 
+[12] Wear unleveling: Improving NAND flash lifetime by balancing page.
+[13] An adaptive file-system-oriented FTL mechanism for flash-memory storage systems.
+[14] An endurance-aware metadata allocation strategy for MLC NAND flash memory storage systems.
+[15] Implementation of metadata logging and power loss recovery for page-mapping FTL.
+[16] Non-volatile memory and control with improved partial page program capability.
+[17] Flash memory management method that is resistant to data corruption by power loss.
+[18] Understanding the impact of power loss on flash memory.
+[19] Flashsim: A simulator for NAND flash-based solid-state drives.
+[20] Lifetime improvement of {NAND} flash-based storage systems using dynamic program and erase scaling.
+[21] Extending the lifetime of flash-based storage through reducing write amplification from file systems.
+
+
