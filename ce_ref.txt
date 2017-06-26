@@ -14,7 +14,6 @@
 [13] Y.-H. Chang, P.-L. Wu, T.-W. Kuo, and S.-H. Hung, “An adaptive filesystem-oriented FTL mechanism for flash-memory storage systems,” ACM Transactions on Embedded Computing Systems, vol. 11, no. 1, pp. 9:1–9:19, Apr. 2012.
 [14] M. Huang, Z. Liu, L. Qiao, Y. Wang, and Z. Shao, “An enduranceaware metadata allocation strategy for MLC NAND flash memory storage systems,” IEEE Transactions on Computer-Aided Design of Integrated Circuits and Systems, vol. 35, no. 4, pp. 691-694, Apr. 2016.
 [15] S.-H. Lim, “Implementation of metadata logging and power loss recovery for page-mapping FTL,” IEICE Electronics Express, vol. 10, no. 11, pp. 1–6, 2013.
-[16] Non-volatile memory and control with improved partial page program capability.
 [16] Y. Li, Y. K. Fong, and T. Miwa, “Non-volatile memory and control with improved partial page program capability,” U.S. Patent 7 057 939, June 6, 2006.
 [17] M. Lasser and K. Yair. "Flash memory management method that is resistant to data corruption by power loss," U.S. Patent 6 988 175, Jan. 17, 2006.
 [18] H.-W. Tseng, L. M. Grupp, R. E. Spada, and S. Swanson, "Understanding the impact of power loss on flash memory," in Proceedings of the 48th Design Automation Conference, June 2011, pp. 35-40.
