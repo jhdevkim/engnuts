@@ -1,6 +1,13 @@
 
-
-
+[1]	R. Chen, Z. Qin, Y. Wang, D. Liu, Z. Shao, and Y. Guan, “On-demand block-level address mapping in large-scale NAND flash storage systems,” IEEE Transactions on Computers, vol. 64, no. 6, pp. 1729-1741, June 2015.
+[2]	A. Gupta, Y. Kim, and B. Urgaonkar, "DFTL: A flash translation layer employing demand-based selective caching of page-level address mappings," in Proc. ASPLOS, Washington, USA, pp. 229-240, Mar. 2009.
+[3]	F. Chen, T. Luo, and X. Zhang, “CAFTL: A content-aware flash translation layer enhancing the lifespan of flash memory based solid state drives,” in Proceedings of the 9th USENIX conference on File and Storage Technologies, San Jose, USA, pp. 77-90, Feb. 2011.
+[4]	Y.-J. Woo and J.-S. Kim, "Diversifying wear index for MLC NAND flash memory to extend the lifetime of SSDs," in Proc. EMSOFT, 2013, pp. 1-10.
+[5]	Embedded MultiMediaCard (eMMC) eMMC/card product standard, Standard JEDEC, 1997.
+[6]	J.-H. Kim, S.-H. Kim, and J.-S. Kim, "Subpage programming for extending the lifetime of NAND flash memory," in Proc. DATE, 2015, pp. 555-560.
+[7]	S. Ji and D. Shin, “An efficient garbage collection for flash memory-based virtual memory systems,” IEEE Transactions on Consumer Electronics, vol. 56, no. 4, pp. 2355-2363, Nov. 2010. 
+[8]	J. Lee and J.-S. Kim, "An empirical study of hot/cold data separation policies in solid state drives (SSDs)," in Proc. SYSTOR, 2013, pp. 12:1-12:6.
+[9]	S.-W. Lee, D.-J. Park, T.-S. Chung, D.-H. Lee, S. Park, and H.-J. Song, “A log buffer-based flash translation layer using fully-associative sector,” ACM Transactions on Embedded Computer Systems, vol. 6, no. 3, July 2007.
 [10] M. Murugan and D. H. Du, “Rejuvenator: A static wear leveling algorithm for NAND flash memory with minimized overhead,” in  Proceedings of the 2011 IEEE 27th Symposium on Mass Storage Systems and Technologies, pp. 1-12, May 2011.
 [11] J.-Y. Ha, Y.-S. Lee, and J.-S. Kim, “Deduplication with block-Level content-aware chunking for solid state drives (SSDs),” in High Performance Computing and Communications & 2013 IEEE International Conference on Embedded and Ubiquitous Computing (HPCC_EUC), pp. 1982-1989, Nov. 2013.
 [12] X. Jimenez, D. Novo, and P. Ienne, “Wear unleveling: improving NAND flash lifetime by balancing page endurance,” in Proceedings of the 12th USENIX conference on File and Storage Technologies, FAST 2014, Santa Clara, CA, USA, Feb. 2014, pp. 47–59.
@@ -12,14 +19,8 @@
 [17] M. Lasser and K. Yair. "Flash memory management method that is resistant to data corruption by power loss," U.S. Patent 6 988 175, Jan. 17, 2006.
 [18] H.-W. Tseng, L. M. Grupp, R. E. Spada, and S. Swanson, "Understanding the impact of power loss on flash memory," in Proceedings of the 48th Design Automation Conference, June 2011, pp. 35-40.
 [19] Y. Kim, B. Tauras, A. Gupta, D. Nistor, and B. Urgaonkar, “Flashsim: A simulator for NAND flash-based solid-state drives,”, in Technical Report CSE-09-008, PSU, 2009.
-[20] Lifetime improvement of NAND flash-based storage systems using dynamic program and erase scaling.
-
-J. Jeong, S. S. Hahn, S. Lee, J. Kim, J. Jeong, S. S. Hahn, S. Lee, and
-J. Kim, “Lifetime improvement of NAND flash-based storage
-systems using dynamic program and erase scaling,” in Proc. 12th
-USENIX Conf. File Storage Technol., 2014, pp. 61–74.
-
-
-[21] Extending the lifetime of flash-based storage through reducing write amplification from file systems.
+[20] J. Jeong, S. S. Hahn, S. Lee, and J. Kim, “Lifetime improvement of NAND flash-based storage systems using dynamic program and erase
+scaling,” in Proceedings of the 12th USENIX conference on File and Storage Technologies, FAST 2014, Santa Clara, CA, USA, Feb. 2014, pp. 61–74.
+[21] Y. Lu, J. Shu, and W. Zheng, “Extending the lifetime of flash-based storage through reducing write amplification from file systems,” in Proceedings of the 11th USENIX conference on File and Storage Technologies, Santa Clara, CA, USA, Feb. 2013, pp. 257-270.
 
 
