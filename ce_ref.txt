@@ -3,15 +3,23 @@
 
 [10] M. Murugan and D. H. Du, “Rejuvenator: A static wear leveling algorithm for NAND flash memory with minimized overhead,” in  Proceedings of the 2011 IEEE 27th Symposium on Mass Storage Systems and Technologies, pp. 1-12, May 2011.
 [11] J.-Y. Ha, Y.-S. Lee, and J.-S. Kim, “Deduplication with block-Level content-aware chunking for solid state drives (SSDs),” in High Performance Computing and Communications & 2013 IEEE International Conference on Embedded and Ubiquitous Computing (HPCC_EUC), pp. 1982-1989, Nov. 2013.
-[12] X. Jimenez, D. Novo, and P. Ienne, “Wear unleveling: improving NAND flash lifetime by balancing page endurance,” in Proceedings of the 12th USENIX conference on File and Storage Technologies, FAST 2014, Santa Clara, CA, USA, February 17-20, 2014, 2014, pp. 47–59.
+[12] X. Jimenez, D. Novo, and P. Ienne, “Wear unleveling: improving NAND flash lifetime by balancing page endurance,” in Proceedings of the 12th USENIX conference on File and Storage Technologies, FAST 2014, Santa Clara, CA, USA, Feb. 2014, pp. 47–59.
 [13] Y.-H. Chang, P.-L. Wu, T.-W. Kuo, and S.-H. Hung, “An adaptive filesystem-oriented FTL mechanism for flash-memory storage systems,” ACM Transactions on Embedded Computing Systems, vol. 11, no. 1, pp. 9:1–9:19, Apr. 2012.
 [14] M. Huang, Z. Liu, L. Qiao, Y. Wang, and Z. Shao, “An enduranceaware metadata allocation strategy for MLC NAND flash memory storage systems,” IEEE Transactions on Computer-Aided Design of Integrated Circuits and Systems, vol. 35, no. 4, pp. 691-694, Apr. 2016.
-[15] Implementation of metadata logging and power loss recovery for page-mapping FTL.
+[15] S.-H. Lim, “Implementation of metadata logging and power loss recovery for page-mapping FTL,” IEICE Electronics Express, vol. 10, no. 11, pp. 1–6, 2013.
 [16] Non-volatile memory and control with improved partial page program capability.
-[17] Flash memory management method that is resistant to data corruption by power loss.
-[18] Understanding the impact of power loss on flash memory.
-[19] Flashsim: A simulator for NAND flash-based solid-state drives.
-[20] Lifetime improvement of {NAND} flash-based storage systems using dynamic program and erase scaling.
+[16] Y. Li, Y. K. Fong, and T. Miwa, “Non-volatile memory and control with improved partial page program capability,” U.S. Patent 7 057 939, June 6, 2006.
+[17] M. Lasser and K. Yair. "Flash memory management method that is resistant to data corruption by power loss," U.S. Patent 6 988 175, Jan. 17, 2006.
+[18] H.-W. Tseng, L. M. Grupp, R. E. Spada, and S. Swanson, "Understanding the impact of power loss on flash memory," in Proceedings of the 48th Design Automation Conference, June 2011, pp. 35-40.
+[19] Y. Kim, B. Tauras, A. Gupta, D. Nistor, and B. Urgaonkar, “Flashsim: A simulator for NAND flash-based solid-state drives,”, in Technical Report CSE-09-008, PSU, 2009.
+[20] Lifetime improvement of NAND flash-based storage systems using dynamic program and erase scaling.
+
+J. Jeong, S. S. Hahn, S. Lee, J. Kim, J. Jeong, S. S. Hahn, S. Lee, and
+J. Kim, “Lifetime improvement of NAND flash-based storage
+systems using dynamic program and erase scaling,” in Proc. 12th
+USENIX Conf. File Storage Technol., 2014, pp. 61–74.
+
+
 [21] Extending the lifetime of flash-based storage through reducing write amplification from file systems.
 
 
