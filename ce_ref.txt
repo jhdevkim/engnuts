@@ -3,9 +3,9 @@
 
 [10] M. Murugan and D. H. Du, “Rejuvenator: A static wear leveling algorithm for NAND flash memory with minimized overhead,” in  Proceedings of the 2011 IEEE 27th Symposium on Mass Storage Systems and Technologies, pp. 1-12, May 2011.
 [11] J.-Y. Ha, Y.-S. Lee, and J.-S. Kim, “Deduplication with block-Level content-aware chunking for solid state drives (SSDs),” in High Performance Computing and Communications & 2013 IEEE International Conference on Embedded and Ubiquitous Computing (HPCC_EUC), pp. 1982-1989, Nov. 2013.
-[12] Wear unleveling: Improving NAND flash lifetime by balancing page.
-[13] An adaptive file-system-oriented FTL mechanism for flash-memory storage systems.
-[14] An endurance-aware metadata allocation strategy for MLC NAND flash memory storage systems.
+[12] X. Jimenez, D. Novo, and P. Ienne, “Wear unleveling: improving NAND flash lifetime by balancing page endurance,” in Proceedings of the 12th USENIX conference on File and Storage Technologies, FAST 2014, Santa Clara, CA, USA, February 17-20, 2014, 2014, pp. 47–59.
+[13] Y.-H. Chang, P.-L. Wu, T.-W. Kuo, and S.-H. Hung, “An adaptive filesystem-oriented FTL mechanism for flash-memory storage systems,” ACM Transactions on Embedded Computing Systems, vol. 11, no. 1, pp. 9:1–9:19, Apr. 2012.
+[14] M. Huang, Z. Liu, L. Qiao, Y. Wang, and Z. Shao, “An enduranceaware metadata allocation strategy for MLC NAND flash memory storage systems,” IEEE Transactions on Computer-Aided Design of Integrated Circuits and Systems, vol. 35, no. 4, pp. 691-694, Apr. 2016.
 [15] Implementation of metadata logging and power loss recovery for page-mapping FTL.
 [16] Non-volatile memory and control with improved partial page program capability.
 [17] Flash memory management method that is resistant to data corruption by power loss.
