@@ -1,8 +1,8 @@
 
 
 
-[10] M. Murugan and D. H. Du, “Rejuvenator: A static wear leveling algorithm for NAND flash memory with minimized overhead,” in MSST, pp. 1-12, 2011.
-[11] J.-Y. Ha, Y.-S. Lee, and J.-S. Kim, “Deduplication with block-Level content-aware chunking for solid state drives (SSDs),” in HPCC_EUC, pp. 1982-1989, 2013. 
+[10] M. Murugan and D. H. Du, “Rejuvenator: A static wear leveling algorithm for NAND flash memory with minimized overhead,” in  Proceedings of the 2011 IEEE 27th Symposium on Mass Storage Systems and Technologies, pp. 1-12, May 2011.
+[11] J.-Y. Ha, Y.-S. Lee, and J.-S. Kim, “Deduplication with block-Level content-aware chunking for solid state drives (SSDs),” in High Performance Computing and Communications & 2013 IEEE International Conference on Embedded and Ubiquitous Computing (HPCC_EUC), pp. 1982-1989, Nov. 2013.
 [12] Wear unleveling: Improving NAND flash lifetime by balancing page.
 [13] An adaptive file-system-oriented FTL mechanism for flash-memory storage systems.
 [14] An endurance-aware metadata allocation strategy for MLC NAND flash memory storage systems.
