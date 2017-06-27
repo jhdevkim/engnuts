@@ -1,0 +1,123 @@
+
+Page 1
+
+abstract
+
+is not avoidle -> 삭제
+
+page 1
+
+modern -> the modrrn
+
+FTL for short -> (FTL)
+
+mapping -> due to the out-of-place updates, 
+
+cut two paragraph -> one paragraph
+
+page 2
+
+Secton V .. describes the implementation of
+
+serve the request from the PPN location
+
+To operate FTL correctly -> For example, 
+
+hot-cold -> cite
+
+Some FTLs -> One approach
+
+Some -> The other -> cite
+
+page 3
+
+eMMC flushes -> eMMC flushed dirty metadata periodically for the fast boot time.
+
+on commercial eMMCs -> inside eMMC storage systems.
+
+We will discuss -> 제거
+
+page 4
+
+to pad -> to program .. by padding with original data.
+
+Full page .. prohibited on SP blocks -> add -> to give the same programming stress on a block.
+We impose -> move first -> We impose three restrictions
+First -> second -> the last
+pong-pong -> cite
+In the pong-pong -> Fig.2 shows
+uncorrectable bit error -> (UECC)
+DFTL -> cite
+so forth -> and so forth
+
+page 5
+
+Similar to user blocks, -> separated partit. for user/meta why?
+
+page 6
+
+This is why -> remove
+by logging GXT changes -> by the loggimg mechanism
+storages' simulation -> cite
+
+page 7
+
+22KiB -> etc. -> 8KiB buffer to store PMT(or BIT) metadata per page.
+Since SPFTL reduces .. hard -> remove
+Table. II -> TABLE II .. three real I/O traces.
+The performance metric is calculated .. -> The nubmer of FTL operations are gathered while runn ... as the perf. metic.
+measured small -> measured as small as 
+Table. II -> TABLE II
+This is because all blocks -> This result is larger than that of uniform random access pattern. This is because the entire user space is filled with random writes.
+This result show -> This result shows that
+
+page 8
+
+In addition, we -> We also
+This is because the addi.. FTL -> This is because the number of FTL metadata entries is increased due to the subpage.
+less than page -> remove
+extended -> increased
+the erase count of -> remove
+subpage programming evaluation -> cite
+we define the weight ... -> we define the weight of endurance in SPFTL-BASE and SPFTL to 1 and 1 over 1.71, respectively
+Due to SPFTL -> SPFTL N 먼저 언급 SPFTLN represents the normalized erase counts by DWI.
+verify -> observe increased total, -> increased remove
+SPFTL and the enhanced enu .. order -> SPFTL scheme and subpage programming which has enhanced endurance. 
+Table. I -> TABLE I
+We also .. benefits -> The write latency is also decreased by faster transfer time of subpage than full page.
+
+
+page 9
+
+maximally -> cite
+Equalizer -> cite
+
+Wear-unleveling introduces the method to identify block wear-out using page-level endurance. ?????
+And Object-based -> And -> remove
+the persistency of index metadata that are the component of -> metadata in host file-system
+SPFTL separated ... storage -> SPFTL reduces the written amount of FTL metadata by utilizing subpage programming. Therefore the lifetime of NAND flash-based storage is enhanced.
+
+FTL usually ... eMMCs. ->FTL exploits the cache mechanism to handle the large amount of FTL metadata with very limited memory space in embedded storage devices.
+However, the write amount of FTL metadata is excessive compared to the amount of modified by FTL operations, because of full page programming.
+writes and therefore -> writes (remove_) and therefore prolongs
+original SPFTL-BASE -> page-mapping style FTL
+of SPFTL-BASE -> remove
+by to -> by up to
+in the envronment of ... NAND chip -> with the pong-pong order as subpage programming method in the environment of a 20nm class NAND chip.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
