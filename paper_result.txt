@@ -1,0 +1,52 @@
+
+
+1. workloads_normal2, A
+
+#GXT PBT-V PBT PMT-V PMT
+0.17	0.06	0.34	0.00	5.23
+0.09	0.09	0.20	0.17	2.73
+
+2. workloads_nomrl1, B
+
+#GXT PBT-V PBT PMT-V PMT
+0.22	0.10	0.54	0.02	6.72
+0.12	0.14	0.31	0.25	3.48
+
+3. workloads_heavy
+
+#GXT PBT-V PBT PMT-V PMT
+0.89	0.39	2.08	0.21	27.29
+0.48	0.54	1.19	1.11	14.12
+
+
+1. lifetime normal2 , A
+
+#USR	PMT		PBT 	GXT
+9.777	10.719	0.829	0.338
+9.811	11.891	1.163	0.363
+9.811	6.954	0.680	0.212
+
+2. lifetime normal1, B
+
+#USR	PMT		PBT 	GXT
+12.815	13.793	1.315	0.443
+12.857	15.290	1.868	0.476
+12.857	8.942	1.092	0.278
+
+3. lifetime heavy, C
+
+#USR	PMT		PBT 	GXT
+53.987	56.334	5.059	1.831
+53.968	62.399	7.111	1.959
+53.968	36.491	4.158	1.146
+
+1.motive
+
+#metadata	data
+623			710		#Normal2
+414			1058	#Normal1
+2713		4749	#Heavy
+
+
+
+
