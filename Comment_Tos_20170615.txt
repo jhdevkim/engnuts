@@ -61,6 +61,9 @@ IMHO performance and energy optimization with these cards are of more significan
 ;수명은 사용량과 관계가 있다. 스토리지의 신뢰도는 매우 중요하므로, 
 ;일반적인 사용자 이외에 파워 또는 헤비 유저에게 맞추어져야 한다.
 ;Flash가 Shrink되면서 Endurance는 낮아지고 있으나 사용자의 사용량은 많아지고 있다.
+; https://en.wikipedia.org/wiki/End-of-life_(product)
+; mobile 3 years
+; 16 GB case -> heavy user, waf 
 
 -The details of underlying phisyques about sub-block erase and partial writes are skipped 
 and the reader cannot find out how programming/erasing subblocks does not impact the rest of the block.
