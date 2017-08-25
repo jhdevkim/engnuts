@@ -1,0 +1,26 @@
+
+http://systecit.blogspot.kr/2010/02/software-developer-kpis.html
+
+KPI Software
+
+We can come up with a number of metrics which gives us several candidates for KPIs:
+1.count lines of code written (kloc) – blunt measure of productivity
+2.reduction in kloc due to refactoring – fewer lines of code reduces support costs
+3.responsive to customers – meeting or exceeding SLAs
+4.the team meeting deadlines – improves predictability; opportunity to earn "early achievement bonuses"
+5.individual meets commitments – measure of professionalism; positive attitude
+6.count number of open, in-progress, resolved and closed issues
+7.leadership and initiative – difficult to measure but extremely valuable traits
+8.unit testing code – reduces number of defects
+9.integrating components, i.e. units of code – continuous integration identifies defects early
+10.conducting code inspections – reduces number of defects
+11.count number of defects found in code inspections – trend analysis
+12.stability of code base – fewer changes in libraries means fewer changes elsewhere and reflects increasing code maturity
+13.participating in design reviews – improves quality of code; measure of professionalism
+14.documenting software design and rationale, eg. notes in file or UML – improves knowledge capture; measure of professionalism
+15.applying design principles and patterns – improves quality of design and code
+16.capturing SMART requirements – reduces number of defects due to missing and misunderstood requirements
+17.writing test cases – verifies functionality, improves quality of code and reduces number of defects
+
+
+
