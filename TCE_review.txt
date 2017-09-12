@@ -12,14 +12,22 @@ This is an interesting paper, with some potential, but the paper fail to discuss
 One example is that the latest CE research is 7 years old, a lot has changed since then. 
 The authors are encouraged to improve their literature discussion.
 
+- 계속 페이지 사이즈가 커져가고 있고, 수명이 감소하고 있는데,..
 
 REVIEWER 2
 
-The proposed paper presents a novel Flash Translation Layer with the introduction of subpage programming technique, in order to minimize the number of writings on NAND flash-based storages, hence increasing the durability of the device.
+The proposed paper presents a novel Flash Translation Layer with the introduction of subpage programming technique, 
+in order to minimize the number of writings on NAND flash-based storages, hence increasing the durability of the device.
 
-The paper is well written and structured, the language is clear. However the innovative contribution is fair and focused on the subpage approach previously applied by the authors to a similar context.
+The paper is well written and structured, the language is clear.
+However the innovative contribution is fair and focused on the subpage approach 
+previously applied by the authors to a similar context.
 
-Some noteworthy doubts arise from this first review, hence some modifications are needed as well as an explaination of the relation of this paper with: http://koasas.kaist.ac.kr/handle/10203/221862
+Some noteworthy doubts arise from this first review,
+hence some modifications are needed as well as an explaination of the relation of this paper with: http://koasas.kaist.ac.kr/handle/10203/221862
+
+- subpage를 buffer상에서만 merging하여 쓰는 방법이며 이는 Power off를 보장하지 못함.
+buffer에 쓰여진 data가 nand에 저장되지 못했기 때문이다.
 
 UNCLEAR/MISLEADING: In the introduction, you stated that : "FTL metadata writes[...] ranged from 28.1% to 46.7% of the total flash writes", with the state-of-the-art (page-mapping) FTL in real use conditions. I would specify immediately that this results come from your experiments (as clarified in II.C). Then, in section V.B, you stated that: "the total amount of FTL metadata writes is 15.16GiB which is almost the same as the total amount of user writes [15.20GiB]", which is roughly coherent with the aforementioned statement.
 
@@ -31,11 +39,19 @@ So, even in conclusions, your results: "Our evaluation results with real I/O tra
 
 MISSING: The introduction show a scarce presentation of the state-of-the-art, which is partially recovered at the end of the paper in the "Related Work" section. However, a brief presentation of the currently used FTL versions in the consumer electronics should be added.
 
+- 현재는 page mapping 사용되는데
+
 MISSING: In this paper, you did not highlight that "Partial page programming (PP) [...] is not allowed in MLC-mode.", as you say in [7]. Assuming that this is still true, I think you should say it explicitly even in this paper. In addition, you say "We assume the blocks for metadata are operated in the SLC-mode [18], [19] whereas data blocks are in the MLC-mode. We believe that the proposed scheme can be incorporated in MLC or TLC metadata blocks without significant modifications.", hence this surely increases the value of your paper. Please add a brief explanation of problems (and, if possible, propose your solutions) in order to extend your algorithm to MLC and TLC blocks.
+
+- MLC에서는 불가능 한데...,
 
 MISSING: Please underline the differences between SPFTL and partial page programming [17], explaining in detail why your approach is preferable. Numerical or experimental or simulation results are welcome in order to justify the advantages of SPFTL.
 
+- partial은 실험 결과에서 수명이 낮다. subpage 보다, 따라서 수치 비교가 필요 없는데,....
+
 MISSING: In V.C, you state that "the endurance of SP blocks is improved by 1.71 times due to subpage programming in the 20nm class NAND chips [7]", but I did not find explicitly that value in the paper. Could you clarify how the value "1.71" is calculated?
+
+- [7]번 이전 실험에서 측정한 수명의 상승된 비율 값인데..
 
 NOMENCLATURE: The renaming of SPFTL to SPFTL-BASE can be misleading, hence I suggest to use the complete name "SPFTL-BASE" since the beginning of the paper.
 
