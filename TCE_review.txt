@@ -30,8 +30,8 @@ previously applied by the authors to a similar context.
 Some noteworthy doubts arise from this first review,
 hence some modifications are needed as well as an explaination of the relation of this paper with: http://koasas.kaist.ac.kr/handle/10203/221862
 
-- 해당 논문의 기법은 cache buffer 상에서만 처리는 subpage 방법이며, NAND의 page programming만 사용하므로,
-본 논문의 subpage programing 기법과 다르다.
+- 해당 논문의 기법은 cache buffer 상에서만 처리, subpage 방법이며, NAND의 page programming만 사용하므로,
+  단어만 동일할 뿐, 본 논문의 subpage programing 기법과 다르다.
 
 UNCLEAR/MISLEADING: In the introduction, you stated that : "FTL metadata writes[...] ranged from 28.1% to 46.7% of the total flash
 writes", with the state-of-the-art (page-mapping) FTL in real use conditions. I would specify immediately that this results 
