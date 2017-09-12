@@ -45,6 +45,8 @@ compared to SPFTL-BASE". Reducing 43% of a quantity that is more than 8 times th
 does not seem a good result, if compared with the state-of-the-art "FTL metadata writes[...] ranged from 28.1% to 46.7% of 
 the total flash writes". Am I missing something? Please clarify and explain carefully this point.
 
+- 28.1%, 46.7%는 clean에서 측정된 데이터이며, meta량이 많은건 dirty에서 측정되었으며 명시되어 있는데,
+
 Even in V.D, Fig.5 and Fig.6, every comparison seems between SPFTL and SPFTL-BASE (which are both proposals of yours), with no
 comparison with the state-of-the-art algorithms.
 
