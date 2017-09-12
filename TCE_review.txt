@@ -12,8 +12,10 @@ This is an interesting paper, with some potential, but the paper fail to discuss
 One example is that the latest CE research is 7 years old, a lot has changed since then. 
 The authors are encouraged to improve their literature discussion.
 
-- 계속 페이지 사이즈가 커져가고 있고, 수명이 감소하고 있는데,..
-- Thus, FTLs cannot but write the entire page for FTL metadata update even though the update changes only a few bytes of FTL metadata and the rest of the page is unchanged. 현재 NAND 공정이 발전하면서, NAND Page 크기에 비례하여 수명이 감소하고 있는 추세이다[]. 그리고, 현재 Planar NAND의 경우는 8KiB까지 Page 크기가 증가하였으며, V-NAND의 경우 Page는 16KiB까지 증가하여 device에 사용되고 있다. This wastes the limited lifespan of NAND flash-based storage devices by repeatedly writing the identical FTL metadata without any outcomes.
+- 현재 NAND 공정이 발전하면서, NAND Page 크기에 비례하여 수명이 감소하고 있는 추세이다~[ref:Subpage programming]. 
+Planar NAND의 경우는 8KiB까지 Page 크기가 증가하였으며, V-NAND의 경우 Page는 16KiB까지 증가하여 device에 사용되고 있다. 
+This wastes the limited lifespan of NAND flash-based storage devices 
+by repeatedly writing the identical FTL metadata without any outcomes.
 
 
 REVIEWER 2
