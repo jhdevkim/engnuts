@@ -44,19 +44,14 @@ Specifically, SPFTL reduces the amount by 43.5%, 43.3%, and 43.6% for Pattern-A,
 compared to SPFTL-BASE". Reducing 43% of a quantity that is more than 8 times the data written by the user 
 does not seem a good result, if compared with the state-of-the-art "FTL metadata writes[...] ranged from 28.1% to 46.7% of 
 the total flash writes". Am I missing something? Please clarify and explain carefully this point.
-
-- 28.1%, 46.7%는 clean에서 측정된 데이터이며, meta량이 많은건 dirty에서 측정되었으며 명시되어 있는데, 7%, 9%, 12% 증가 SPFTL-BASE Clean,
- better than state-of-art
-
 Even in V.D, Fig.5 and Fig.6, every comparison seems between SPFTL and SPFTL-BASE (which are both proposals of yours), with no
 comparison with the state-of-the-art algorithms.
-
 So, even in conclusions, your results: "Our evaluation results with real I/O traces show that SPFTL reduces the average amount of
 metadata written to the flash memory by up to 43.4%. As a result, we show that SPFTL improves the average lifetime of embedded NAND
 flash-based storage devices by up to 18.4% in the environment composed of 20nm class NAND chips." seems to concern the comparison
 between SPFTL and SPFTL-BASE, with no real comparison with the state-of-the-art algorithms.
 
-- state-of-art, SPFTL-BASE, SPFTL의 content & 결과 다시 한번 점검,
+- 28.1%, 46.7%는 clean에서 측정된 데이터이며 (context save version at every host request), meta량이 많은건 dirty에서 측정되었으며 명시되어 있는데...  SPFTL-BASE는 dirty 상태에서도 11.0%, 6.7%, 8.3%로 낮은 버전이므로, state-of-art와 비교할 필요가 없다.
 
 MISSING: The introduction show a scarce presentation of the state-of-the-art, which is partially recovered at the end of the paper 
 in the "Related Work" section. However, a brief presentation of the currently used FTL versions in the consumer electronics should
