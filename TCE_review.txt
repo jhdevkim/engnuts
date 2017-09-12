@@ -30,15 +30,14 @@ previously applied by the authors to a similar context.
 Some noteworthy doubts arise from this first review,
 hence some modifications are needed as well as an explaination of the relation of this paper with: http://koasas.kaist.ac.kr/handle/10203/221862
 
-- host data's subpage를 buffer상에서만 merging하여 쓰는 방법이며 Power off를 보장하지 못함.
-buffer에 쓰여진 data가 nand에 저장되지 못했기 때문이다.
+- 해당 논문의 기법은 cache buffer 상에서만 처리는 subpage 방법이며, NAND의 page programming만 사용하므로,
+본 논문의 subpage programing 기법과 다르다.
 
 UNCLEAR/MISLEADING: In the introduction, you stated that : "FTL metadata writes[...] ranged from 28.1% to 46.7% of the total flash
 writes", with the state-of-the-art (page-mapping) FTL in real use conditions. I would specify immediately that this results 
 come from your experiments (as clarified in II.C). Then, in section V.B, you stated that: "the total amount of 
 FTL metadata writes is 15.16GiB which is almost the same as the total amount of user writes [15.20GiB]", 
 which is roughly coherent with the aforementioned statement.
-
 Finally, you add that using SPFTL-BASE (which is not a state-of-the-art algorithm, but a proposal of yours): "We observe 
 that the total amount of FTL metadata writes accounts for 5.80GiB in Pattern-A, which is 8.36 times of the data written by the user.
 Similar to Pattern-A, Pattern-B and Pattern-C show the similar results." How do you explain this huge increase in FTL metadata writes?
@@ -55,13 +54,15 @@ metadata written to the flash memory by up to 43.4%. As a result, we show that S
 flash-based storage devices by up to 18.4% in the environment composed of 20nm class NAND chips." seems to concern the comparison
 between SPFTL and SPFTL-BASE, with no real comparison with the state-of-the-art algorithms.
 
-- 28.1%, 46.7%는 clean에서 측정된 데이터이며 (context save version at every host request), meta량이 많은건 dirty에서 측정되었으며 명시되어 있는데...  SPFTL-BASE는 dirty 상태에서도 11.0%, 6.7%, 8.3%로 낮은 버전이므로, state-of-art와 비교할 필요가 없다.
+- GXT metadata를 host request마다 저장하도록 하는 버전이며 28.1%, 46.7% 메타데이터를 더 기록한다.
+  본 논문에서 제안하는 SPFTL-BASE는 동일 측정 상태에서도 8.3% 6.7% 11.0% 메타데이터를 기록하고 개선되었으므로, 
+  state-of-art와 비교할 필요가 없다.
 
 MISSING: The introduction show a scarce presentation of the state-of-the-art, which is partially recovered at the end of the paper 
 in the "Related Work" section. However, a brief presentation of the currently used FTL versions in the consumer electronics should
 be added.
 
-- 현재는 page mapping 사용되는데 version??
+- 현재 DFTL과 유사할 수 있는 Page mapping FTL이 사용되며, SRAM 크기에 따라 Page mapping 영역을 제한(Zone) 하여 사용한다.
 
 MISSING: In this paper, you did not highlight that "Partial page programming (PP) [...] is not allowed in MLC-mode.", 
 as you say in [7]. Assuming that this is still true, I think you should say it explicitly even in this paper. In addition, 
@@ -85,9 +86,13 @@ is calculated?
 NOMENCLATURE: The renaming of SPFTL to SPFTL-BASE can be misleading, hence I suggest to use the complete name "SPFTL-BASE" 
 since the beginning of the paper.
 
+- Using SPFTL-BASE at the beginning
+
 GRAMMAR: The paper is in general clear and well written, although I have found a few typos and grammar mistakes: - 
 "metadata should be persist" -> "metadata should be persistent" - "to make the update persistent across a power cycles" -> 
 "to make the update persistent across a power cycle"
+
+- Ok
 
 EDITOR
 
