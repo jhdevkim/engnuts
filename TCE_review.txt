@@ -29,41 +29,75 @@ hence some modifications are needed as well as an explaination of the relation o
 - subpage를 buffer상에서만 merging하여 쓰는 방법이며 이는 Power off를 보장하지 못함.
 buffer에 쓰여진 data가 nand에 저장되지 못했기 때문이다.
 
-UNCLEAR/MISLEADING: In the introduction, you stated that : "FTL metadata writes[...] ranged from 28.1% to 46.7% of the total flash writes", with the state-of-the-art (page-mapping) FTL in real use conditions. I would specify immediately that this results come from your experiments (as clarified in II.C). Then, in section V.B, you stated that: "the total amount of FTL metadata writes is 15.16GiB which is almost the same as the total amount of user writes [15.20GiB]", which is roughly coherent with the aforementioned statement.
+UNCLEAR/MISLEADING: In the introduction, you stated that : "FTL metadata writes[...] ranged from 28.1% to 46.7% of the total flash
+writes", with the state-of-the-art (page-mapping) FTL in real use conditions. I would specify immediately that this results 
+come from your experiments (as clarified in II.C). Then, in section V.B, you stated that: "the total amount of 
+FTL metadata writes is 15.16GiB which is almost the same as the total amount of user writes [15.20GiB]", 
+which is roughly coherent with the aforementioned statement.
 
-Finally, you add that using SPFTL-BASE (which is not a state-of-the-art algorithm, but a proposal of yours): "We observe that the total amount of FTL metadata writes accounts for 5.80GiB in Pattern-A, which is 8.36 times of the data written by the user. Similar to Pattern-A, Pattern-B and Pattern-C show the similar results." How do you explain this huge increase in FTL metadata writes? Hence, why is the following reduction significant, given the fact that SPFTL-BASE presents the aforementioned huge increase in FTL metadata writes? "We can observe that SPFTL significantly decreases the amount of metadata writes for all the given traces. Specifically, SPFTL reduces the amount by 43.5%, 43.3%, and 43.6% for Pattern-A, Pattern-B, and Pattern-C, respectively, compared to SPFTL-BASE". Reducing 43% of a quantity that is more than 8 times the data written by the user does not seem a good result, if compared with the state-of-the-art "FTL metadata writes[...] ranged from 28.1% to 46.7% of the total flash writes". Am I missing something? Please clarify and explain carefully this point.
+Finally, you add that using SPFTL-BASE (which is not a state-of-the-art algorithm, but a proposal of yours): "We observe 
+that the total amount of FTL metadata writes accounts for 5.80GiB in Pattern-A, which is 8.36 times of the data written by the user.
+Similar to Pattern-A, Pattern-B and Pattern-C show the similar results." How do you explain this huge increase in FTL metadata writes?
+Hence, why is the following reduction significant, given the fact that SPFTL-BASE presents the aforementioned huge increase 
+in FTL metadata writes? "We can observe that SPFTL significantly decreases the amount of metadata writes for all the given traces.
+Specifically, SPFTL reduces the amount by 43.5%, 43.3%, and 43.6% for Pattern-A, Pattern-B, and Pattern-C, respectively, 
+compared to SPFTL-BASE". Reducing 43% of a quantity that is more than 8 times the data written by the user 
+does not seem a good result, if compared with the state-of-the-art "FTL metadata writes[...] ranged from 28.1% to 46.7% of 
+the total flash writes". Am I missing something? Please clarify and explain carefully this point.
 
-Even in V.D, Fig.5 and Fig.6, every comparison seems between SPFTL and SPFTL-BASE (which are both proposals of yours), with no comparison with the state-of-the-art algorithms.
+Even in V.D, Fig.5 and Fig.6, every comparison seems between SPFTL and SPFTL-BASE (which are both proposals of yours), with no
+comparison with the state-of-the-art algorithms.
 
-So, even in conclusions, your results: "Our evaluation results with real I/O traces show that SPFTL reduces the average amount of metadata written to the flash memory by up to 43.4%. As a result, we show that SPFTL improves the average lifetime of embedded NAND flash-based storage devices by up to 18.4% in the environment composed of 20nm class NAND chips." seems to concern the comparison between SPFTL and SPFTL-BASE, with no real comparison with the state-of-the-art algorithms.
+So, even in conclusions, your results: "Our evaluation results with real I/O traces show that SPFTL reduces the average amount of
+metadata written to the flash memory by up to 43.4%. As a result, we show that SPFTL improves the average lifetime of embedded NAND
+flash-based storage devices by up to 18.4% in the environment composed of 20nm class NAND chips." seems to concern the comparison
+between SPFTL and SPFTL-BASE, with no real comparison with the state-of-the-art algorithms.
 
-MISSING: The introduction show a scarce presentation of the state-of-the-art, which is partially recovered at the end of the paper in the "Related Work" section. However, a brief presentation of the currently used FTL versions in the consumer electronics should be added.
+MISSING: The introduction show a scarce presentation of the state-of-the-art, which is partially recovered at the end of the paper 
+in the "Related Work" section. However, a brief presentation of the currently used FTL versions in the consumer electronics should
+be added.
 
 - 현재는 page mapping 사용되는데
 
-MISSING: In this paper, you did not highlight that "Partial page programming (PP) [...] is not allowed in MLC-mode.", as you say in [7]. Assuming that this is still true, I think you should say it explicitly even in this paper. In addition, you say "We assume the blocks for metadata are operated in the SLC-mode [18], [19] whereas data blocks are in the MLC-mode. We believe that the proposed scheme can be incorporated in MLC or TLC metadata blocks without significant modifications.", hence this surely increases the value of your paper. Please add a brief explanation of problems (and, if possible, propose your solutions) in order to extend your algorithm to MLC and TLC blocks.
+MISSING: In this paper, you did not highlight that "Partial page programming (PP) [...] is not allowed in MLC-mode.", 
+as you say in [7]. Assuming that this is still true, I think you should say it explicitly even in this paper. In addition, 
+you say "We assume the blocks for metadata are operated in the SLC-mode [18], [19] whereas data blocks are in the MLC-mode. 
+We believe that the proposed scheme can be incorporated in MLC or TLC metadata blocks without significant modifications.", 
+hence this surely increases the value of your paper. Please add a brief explanation of problems (and, if possible, propose your solutions) in order to extend your algorithm to MLC and TLC blocks.
 
 - MLC에서는 불가능 한데...,
 
-MISSING: Please underline the differences between SPFTL and partial page programming [17], explaining in detail why your approach is preferable. Numerical or experimental or simulation results are welcome in order to justify the advantages of SPFTL.
+MISSING: Please underline the differences between SPFTL and partial page programming [17], explaining in detail why your approach 
+is preferable. Numerical or experimental or simulation results are welcome in order to justify the advantages of SPFTL.
 
 - partial은 실험 결과에서 수명이 낮다. subpage 보다, 따라서 수치 비교가 필요 없는데,....
 
-MISSING: In V.C, you state that "the endurance of SP blocks is improved by 1.71 times due to subpage programming in the 20nm class NAND chips [7]", but I did not find explicitly that value in the paper. Could you clarify how the value "1.71" is calculated?
+MISSING: In V.C, you state that "the endurance of SP blocks is improved by 1.71 times due to subpage programming 
+in the 20nm class NAND chips [7]", but I did not find explicitly that value in the paper. Could you clarify how the value "1.71" 
+is calculated?
 
 - [7]번 이전 실험에서 측정한 수명의 상승된 비율 값인데..
 
-NOMENCLATURE: The renaming of SPFTL to SPFTL-BASE can be misleading, hence I suggest to use the complete name "SPFTL-BASE" since the beginning of the paper.
+NOMENCLATURE: The renaming of SPFTL to SPFTL-BASE can be misleading, hence I suggest to use the complete name "SPFTL-BASE" 
+since the beginning of the paper.
 
-GRAMMAR: The paper is in general clear and well written, although I have found a few typos and grammar mistakes: - "metadata should be persist" -> "metadata should be persistent" - "to make the update persistent across a power cycles" -> "to make the update persistent across a power cycle"
+GRAMMAR: The paper is in general clear and well written, although I have found a few typos and grammar mistakes: - 
+"metadata should be persist" -> "metadata should be persistent" - "to make the update persistent across a power cycles" -> 
+"to make the update persistent across a power cycle"
 
 EDITOR
 
-The reviewers assess that the paper is interesting to be published in TCE and it is in the scope of the journal. However they have detected several problems than should be solved before its publication. I encourage the resubmission of the paper after solving the issues described by the reviewers.
+The reviewers assess that the paper is interesting to be published in TCE and it is in the scope of the journal. 
+However they have detected several problems than should be solved before its publication. 
+I encourage the resubmission of the paper after solving the issues described by the reviewers.
 
 ********************************************************************
 
-Resubmission of this manuscript to the IEEE Transactions on Consumer Electronics is encouraged. If you do resubmit, it must be done via our website. Do not change the title of the Paper you are resubmitting. Please select the "Yes" near the bottom of the Paper Submission Form to indicate that this is indeed a resubmission. A new Paper Number will be generated, and you will have to submit a new Copyright Transfer Form following the Instructions you receive after successful submission.
+Resubmission of this manuscript to the IEEE Transactions on Consumer Electronics is encouraged. If you do resubmit, 
+it must be done via our website. Do not change the title of the Paper you are resubmitting. Please select the
+"Yes" near the bottom of the Paper Submission Form to indicate that this is indeed a resubmission. 
+A new Paper Number will be generated, and you will have to submit a new Copyright Transfer 
+Form following the Instructions you receive after successful submission.
 
 Thank you for your interest in the Consumer Electronics Society of the IEEE.
 
