@@ -53,11 +53,13 @@ metadata written to the flash memory by up to 43.4%. As a result, we show that S
 flash-based storage devices by up to 18.4% in the environment composed of 20nm class NAND chips." seems to concern the comparison
 between SPFTL and SPFTL-BASE, with no real comparison with the state-of-the-art algorithms.
 
+- state-of-art, SPFTL-BASE, SPFTL의 content & 결과 다시 한번 점검,
+
 MISSING: The introduction show a scarce presentation of the state-of-the-art, which is partially recovered at the end of the paper 
 in the "Related Work" section. However, a brief presentation of the currently used FTL versions in the consumer electronics should
 be added.
 
-- 현재는 page mapping 사용되는데
+- 현재는 page mapping 사용되는데 version??
 
 MISSING: In this paper, you did not highlight that "Partial page programming (PP) [...] is not allowed in MLC-mode.", 
 as you say in [7]. Assuming that this is still true, I think you should say it explicitly even in this paper. In addition, 
