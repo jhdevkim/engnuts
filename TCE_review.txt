@@ -26,7 +26,7 @@ previously applied by the authors to a similar context.
 Some noteworthy doubts arise from this first review,
 hence some modifications are needed as well as an explaination of the relation of this paper with: http://koasas.kaist.ac.kr/handle/10203/221862
 
-- subpage를 buffer상에서만 merging하여 쓰는 방법이며 이는 Power off를 보장하지 못함.
+- host data's subpage를 buffer상에서만 merging하여 쓰는 방법이며 Power off를 보장하지 못함.
 buffer에 쓰여진 data가 nand에 저장되지 못했기 때문이다.
 
 UNCLEAR/MISLEADING: In the introduction, you stated that : "FTL metadata writes[...] ranged from 28.1% to 46.7% of the total flash
