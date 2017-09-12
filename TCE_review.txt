@@ -56,13 +56,18 @@ between SPFTL and SPFTL-BASE, with no real comparison with the state-of-the-art 
 
 - GXT metadata를 host request마다 저장하도록 하는 버전이며 28.1%, 46.7% 메타데이터를 더 기록한다.
   본 논문에서 제안하는 SPFTL-BASE는 동일 측정 상태에서도 8.3% 6.7% 11.0% 메타데이터를 기록하고 개선되었으므로, 
-  State-of-art와 비교할 필요가 없다.
+  State-of-art와 비교할 필요가 없다. 따라서, SPFTL-BASE와 SPFTL을 앞으로 비교한다.
 
 MISSING: The introduction show a scarce presentation of the state-of-the-art, which is partially recovered at the end of the paper 
 in the "Related Work" section. However, a brief presentation of the currently used FTL versions in the consumer electronics should
 be added.
 
-- 현재 DFTL과 유사할 수 있는 Page mapping FTL이 사용되며, SRAM 크기에 따라 Page mapping 영역을 제한(Zone) 하여 사용한다.
+- There are three classes of FTL mapping granularities to deal with the address of
+NAND flash memory. Block-level and page-level mappings can be realized by dividing
+the total storage area into several blocks and pages respectively. Hybrid-level mapping
+is the combination of the block-level and page-level mappings. Depending on the
+class of mapping, FTL should create and manage own metadata to implement its mapping
+scheme.
 
 MISSING: In this paper, you did not highlight that "Partial page programming (PP) [...] is not allowed in MLC-mode.", 
 as you say in [7]. Assuming that this is still true, I think you should say it explicitly even in this paper. In addition, 
@@ -70,7 +75,9 @@ you say "We assume the blocks for metadata are operated in the SLC-mode [18], [1
 We believe that the proposed scheme can be incorporated in MLC or TLC metadata blocks without significant modifications.", 
 hence this surely increases the value of your paper. Please add a brief explanation of problems (and, if possible, propose your solutions) in order to extend your algorithm to MLC and TLC blocks.
 
-- MLC에서는 불가능 한데...,
+- MLC에서 Partial page programming은 기존 프로그램된 data에 영향을 주므로 불가능하다. 따라서, 우리는 이 PP 방법을 배제한다.
+- Meta를 SLC만 사용하는 SPFTL 방법이 MLC, TLC에서도 가장 효과적이려면,
+  SLC Meta 영역의 수명이 MLC, TLC로 사용되는 User 영역의 수명을 보장할 수 있어야 한다.
 
 MISSING: Please underline the differences between SPFTL and partial page programming [17], explaining in detail why your approach 
 is preferable. Numerical or experimental or simulation results are welcome in order to justify the advantages of SPFTL.
