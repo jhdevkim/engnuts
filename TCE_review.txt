@@ -59,6 +59,8 @@ between SPFTL and SPFTL-BASE, with no real comparison with the state-of-the-art 
   State-of-art와 동일 측정 상태에서도 SPFTL-BASE 8.3% 6.7% 11.0% 메타데이터를 기록하고 개선되었으므로, 
   3.9% 4.9% 6.3% SPFTL
   State-of-art와 비교할 필요가 없다. 따라서, SPFTL-BASE와 SPFTL만을 비교한다.
+  it is lessened to the amount of 6.7% and 11.0%.
+  And SPFTL also decreases to the amount between 3.9% and 6.3%.
 
 MISSING: The introduction show a scarce presentation of the state-of-the-art, which is partially recovered at the end of the paper 
 in the "Related Work" section. However, a brief presentation of the currently used FTL versions in the consumer electronics should
