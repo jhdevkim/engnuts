@@ -56,7 +56,7 @@ between SPFTL and SPFTL-BASE, with no real comparison with the state-of-the-art 
 
 - GXT metadata를 host request마다 저장하도록 하는 버전이며 28.1%, 46.7% 메타데이터를 더 기록한다.
   본 논문에서 제안하는 SPFTL-BASE는 동일 측정 상태에서도 8.3% 6.7% 11.0% 메타데이터를 기록하고 개선되었으므로, 
-  state-of-art와 비교할 필요가 없다.
+  State-of-art와 비교할 필요가 없다.
 
 MISSING: The introduction show a scarce presentation of the state-of-the-art, which is partially recovered at the end of the paper 
 in the "Related Work" section. However, a brief presentation of the currently used FTL versions in the consumer electronics should
