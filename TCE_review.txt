@@ -62,12 +62,13 @@ MISSING: The introduction show a scarce presentation of the state-of-the-art, wh
 in the "Related Work" section. However, a brief presentation of the currently used FTL versions in the consumer electronics should
 be added.
 
+- 기존 작성된 내용이 있으며, 아래 단락을 Intro.에 추가
 - There are three classes of FTL mapping granularities to deal with the address of
-NAND flash memory. Block-level and page-level mappings can be realized by dividing
-the total storage area into several blocks and pages respectively. Hybrid-level mapping
-is the combination of the block-level and page-level mappings. Depending on the
-class of mapping, FTL should create and manage own metadata to implement its mapping
-scheme.
+  NAND flash memory. Block-level and page-level mappings can be realized by dividing
+  the total storage area into several blocks and pages respectively. Hybrid-level mapping
+  is the combination of the block-level and page-level mappings. Depending on the
+  class of mapping, FTL should create and manage own metadata to implement its mapping
+  scheme.
 
 MISSING: In this paper, you did not highlight that "Partial page programming (PP) [...] is not allowed in MLC-mode.", 
 as you say in [7]. Assuming that this is still true, I think you should say it explicitly even in this paper. In addition, 
