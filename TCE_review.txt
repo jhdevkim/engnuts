@@ -82,18 +82,19 @@ hence this surely increases the value of your paper. Please add a brief explanat
 MISSING: Please underline the differences between SPFTL and partial page programming [17], explaining in detail why your approach 
 is preferable. Numerical or experimental or simulation results are welcome in order to justify the advantages of SPFTL.
 
-- partial은 실험 결과에서 수명이 낮다. subpage 보다, 따라서 수치 비교가 필요 없는데,....
+- 기존 [Supage 논문]에서 PP는 SLC Mode에서 단순 Page Programming보다 24%, 8% 수명이 낮다. 따라서, PP 방법은 사용하지 않는다.
 
 MISSING: In V.C, you state that "the endurance of SP blocks is improved by 1.71 times due to subpage programming 
 in the 20nm class NAND chips [7]", but I did not find explicitly that value in the paper. Could you clarify how the value "1.71" 
 is calculated?
 
-- [7]번 이전 실험에서 측정한 수명의 상승된 비율 값인데..
+- 기존 [Supage 논문]에서 SLC-mode로 측정된 Fig. 8 Chip B의 SP2O_SLC의 수명 증가률(Normalized Endurance Cycle) 
+  그래프에서 확인 가능하며, 1.71로 half-page 크기에서 가장 높은 수명을 보인다.
 
 NOMENCLATURE: The renaming of SPFTL to SPFTL-BASE can be misleading, hence I suggest to use the complete name "SPFTL-BASE" 
 since the beginning of the paper.
 
-- Using SPFTL-BASE at the beginning
+- Ok, it can be changed as SPFTL-BASE from the beginning
 
 GRAMMAR: The paper is in general clear and well written, although I have found a few typos and grammar mistakes: - 
 "metadata should be persist" -> "metadata should be persistent" - "to make the update persistent across a power cycles" -> 
