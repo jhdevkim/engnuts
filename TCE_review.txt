@@ -18,23 +18,15 @@ The authors are encouraged to improve their literature discussion.
 - For instance, FTLs require to keep the mapping information between the logical block addresses and the physical flash addresses. 
   Also, FTLs should keep track of the erase count for each erase block to level wear among the erase blocks. 
   In general, it is impractical to keep the entire metadata in the internal memory of storage devices since these devices are usually
-  equipped with only a small amount of SRAM[REF1] and the metadata should be persistent across power cycles. 
+  equipped with only a small amount of SRAM[REF1][REF2] and the metadata should be persistent across power cycles. 
   Thus, recent FTLs usually cache a part of metadata with the internal memory whereas the original metadata is stored 
   in the non-volatile flash memory.
 - [REF1] Add Recent TCE research
  - H. Kim, S. Jung, and Y. Song, “Map cache management using dual granularity for mobile storage systems,” 
    IEEE Transactions on Consumer Electronics, vol. 60, no. 4, pp. 644-652, Nov. 2014. 
-  - @article{kim2014map,
-  title={Map cache management using dual granularity for mobile storage systems},
-  author={Kim, Huijeong and Jung, Sanghyuk and Song, Yong Ho},
-  journal={IEEE Transactions on Consumer Electronics},
-  volume={60},
-  number={4},
-  pages={644--652},
-  year={2014},
-  publisher={IEEE}
-  }
-
+- [REF2] Add Recent TCE research
+ - K. Ha, T. Kim, B. Ahn, J. Kim, "Resource-aware sector translation layer for resource-sensitive nand flash-based storage systems," 
+  IEEE Transactions on Consumer Electronics, vol. 58, no. 2, May. 2012. 
 
 REVIEWER 2
 
