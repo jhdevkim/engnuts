@@ -12,26 +12,31 @@ This is an interesting paper, with some potential, but the paper fail to discuss
 One example is that the latest CE research is 7 years old, a lot has changed since then. 
 The authors are encouraged to improve their literature discussion.
 
-- 현재 NAND 공정이 발전하면서, NAND Page 크기에 비례하여 수명이 감소하고 있는 추세이다~[ref:Subpage programming]. 
-Planar NAND의 경우는 8KiB까지 Page 크기가 증가하였으며, V-NAND의 경우 Page는 16KiB까지 증가하여 device에 사용되고 있다. 
-This wastes the limited lifespan of NAND flash-based storage devices 
-by repeatedly writing the identical FTL metadata without any outcomes.
-
+- 현재 NAND 공정이 발전하면서, NAND Page 크기에 비례하여 수명이 감소하고 있는 추세이다. 
+  Planar NAND의 경우는 8KiB까지 Page 크기가 증가하였으며, V-NAND의 경우 Page는 16KiB까지 증가하여 device에 사용되고 있다. 
+- 위의 내용을 Intro.에 넣으면 FTL 내용이 아니며, V-NAND가 언급되는 것 같으므로 아래의 TOS Intro.를 참고하여 논문에 반영함
+- For instance, FTLs require to keep the mapping information between the logical block addresses and the physical flash addresses. 
+  Also, FTLs should keep track of the erase count for each erase block to level wear among the erase blocks. 
+  In general, it is impractical to keep the entire metadata in the internal memory of storage devices since these devices are usually
+  equipped with only a small amount of SRAM and the metadata should be persistent across power cycles. 
+  Thus, recent FTLs usually cache a part of metadata with the internal memory whereas the original metadata is stored 
+  in the non-volatile flash memory.
 
 REVIEWER 2
 
 The proposed paper presents a novel Flash Translation Layer with the introduction of subpage programming technique, 
 in order to minimize the number of writings on NAND flash-based storages, hence increasing the durability of the device.
-
 The paper is well written and structured, the language is clear.
 However the innovative contribution is fair and focused on the subpage approach 
 previously applied by the authors to a similar context.
-
 Some noteworthy doubts arise from this first review,
 hence some modifications are needed as well as an explaination of the relation of this paper with: http://koasas.kaist.ac.kr/handle/10203/221862
 
 - 해당 논문의 기법은 cache buffer 상에서만 처리, subpage 방법이며, NAND의 page programming만 사용하므로,
   단어만 동일할 뿐, 본 논문의 subpage programing 기법과 다르다.
+- 아래의 내용으로 Intro. 논문에 반영함
+- SPFTL adopts the subpage programming scheme [7] which is presented in our previous work and 
+  differs with merging small write requests in volatile memory.
 
 UNCLEAR/MISLEADING: In the introduction, you stated that : "FTL metadata writes[...] ranged from 28.1% to 46.7% of the total flash
 writes", with the state-of-the-art (page-mapping) FTL in real use conditions. I would specify immediately that this results 
@@ -47,6 +52,18 @@ Specifically, SPFTL reduces the amount by 43.5%, 43.3%, and 43.6% for Pattern-A,
 compared to SPFTL-BASE". Reducing 43% of a quantity that is more than 8 times the data written by the user 
 does not seem a good result, if compared with the state-of-the-art "FTL metadata writes[...] ranged from 28.1% to 46.7% of 
 the total flash writes". Am I missing something? Please clarify and explain carefully this point.
+
+- II. C Motivation 에 언급된 28.1%, 48.7% Meta의 적는 량은 GXT를 request마다 저장하는 실험적인 FTL 버전(2016)으로, 
+  Commerical eMMC에서 측정된 24.8%, 60.9%에 근접하도록 GXT를 request마다 저장하도록 실험한 버전.
+  본 논문에서 제안하는 SPFTL-BASE는 GXT metadata 저장을 최소화하였으며, 
+  SPFTL-BASE 8.3% 6.7% 11.0% 메타데이터를 기록하고 개선, SPFTL 3.9% 4.9% 6.3%로 개선함
+  평가 환경을 동일하게 Initial한 상태에서 평가되도록 명시함
+- 아래의 내용으로 V. B Analysis of SPFTL Metadata에 추가함.
+- Firstly, we perform three real I/O traces at the condition that all data and metadata blocks are in the initial state. 
+  In Section I, the ranges of FTL metadata amounts were from 28.1% to 46.7% of the total flash writes. As storing GXT metadata
+  periodically in SPFTL-BASE, their write amounts are reduced to 8.3%, 6.7%, and 11.0% of the total flash writes. 
+  And SPFTL also decreases their amounts to 4.9%, 3.9%, and 6.3% of the total flash writes. 
+  
 Even in V.D, Fig.5 and Fig.6, every comparison seems between SPFTL and SPFTL-BASE (which are both proposals of yours), with no
 comparison with the state-of-the-art algorithms.
 So, even in conclusions, your results: "Our evaluation results with real I/O traces show that SPFTL reduces the average amount of
@@ -54,13 +71,11 @@ metadata written to the flash memory by up to 43.4%. As a result, we show that S
 flash-based storage devices by up to 18.4% in the environment composed of 20nm class NAND chips." seems to concern the comparison
 between SPFTL and SPFTL-BASE, with no real comparison with the state-of-the-art algorithms.
 
-- GXT metadata를 host request마다 저장하도록 하는 버전이며 28.1%, 46.7% 메타데이터를 더 기록한다.
-  본 논문에서 제안하는 SPFTL-BASE는 GXT metadata 저장을 최소화하였으며, 
-  State-of-art와 동일 측정 상태에서도 SPFTL-BASE 8.3% 6.7% 11.0% 메타데이터를 기록하고 개선되었으므로, 
-  3.9% 4.9% 6.3% SPFTL
-  State-of-art와 비교할 필요가 없다. 따라서, SPFTL-BASE와 SPFTL만을 비교한다.
-  In SPFTL-BASE, their amounts are reduced to 8.3%, 6.7%, and 11.0% of the total flash writes.
-  And SPFTL also decreases their amounts to 4.9%, 3.9%, and 6.3% of the total flash writes.
+- II.C Motivation에서 GXT를 저장하는 버전은 Aged 환경(Fill Random Writes)에서 측정하지 않았음, 예상으로 수~열배 이상 기록될 것임.
+- GXT를 개선한 버전이 SPFTL-BASE(주기적으로 GXT 메타를 저장)이므로 해당 버전과 SPFTL 버전만 비교함
+- 아래의 내용을 V. B Analysis of FTL Metadata에 추가함
+- We omit the total amount of metadata evaluated from FTL of Section I. 
+  This is because their total amounts shows several times more than that of SPFTL and SPFTL-BASE.
   
 MISSING: The introduction show a scarce presentation of the state-of-the-art, which is partially recovered at the end of the paper 
 in the "Related Work" section. However, a brief presentation of the currently used FTL versions in the consumer electronics should
