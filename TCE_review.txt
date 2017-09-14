@@ -69,6 +69,12 @@ the total flash writes". Am I missing something? Please clarify and explain care
   In Section I, the ranges of FTL metadata amounts were from 28.1% to 46.7% of the total flash writes. As storing GXT metadata
   periodically in SPFTL-BASE, their write amounts are reduced to 8.3%, 6.7%, and 11.0% of the total flash writes. 
   And SPFTL also decreases their amounts to 4.9%, 3.9%, and 6.3% of the total flash writes. 
+- 				(MB)			(Ratio)
+	            Host	Total Meta at Clean	Total Meta at Dirty			Total Meta at Clean	Total Meta at Dirty
+   Heavy	4749.46	433.30 	932.80 		                        Heavy	   1.09 	1.20 
+   Normal	1057.93	76.47 	95.30 		                      Normal    	1.07 	1.09 
+   Normal2	710.51	87.70 	107.09 		                     Normal2	  1.12 	1.15 
+
   
 Even in V.D, Fig.5 and Fig.6, every comparison seems between SPFTL and SPFTL-BASE (which are both proposals of yours), with no
 comparison with the state-of-the-art algorithms.
