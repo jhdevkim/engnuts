@@ -81,13 +81,7 @@ MISSING: The introduction show a scarce presentation of the state-of-the-art, wh
 in the "Related Work" section. However, a brief presentation of the currently used FTL versions in the consumer electronics should
 be added.
 
-- 기존 작성된 내용이 있으며, 아래 단락을 Intro.에 추가
-- There are three classes of FTL mapping granularities to deal with the address of
-  NAND flash memory. Block-level and page-level mappings can be realized by dividing
-  the total storage area into several blocks and pages respectively. Hybrid-level mapping
-  is the combination of the block-level and page-level mappings. Depending on the
-  class of mapping, FTL should create and manage own metadata to implement its mapping
-  scheme.
+- REVIEWER 1과 동일한 것으로 판단되어, REVIEWER 1의 동일 내용 반영함
 
 MISSING: In this paper, you did not highlight that "Partial page programming (PP) [...] is not allowed in MLC-mode.", 
 as you say in [7]. Assuming that this is still true, I think you should say it explicitly even in this paper. In addition, 
@@ -95,14 +89,20 @@ you say "We assume the blocks for metadata are operated in the SLC-mode [18], [1
 We believe that the proposed scheme can be incorporated in MLC or TLC metadata blocks without significant modifications.", 
 hence this surely increases the value of your paper. Please add a brief explanation of problems (and, if possible, propose your solutions) in order to extend your algorithm to MLC and TLC blocks.
 
-- MLC에서 Partial page programming은 기존 프로그램된 data에 영향을 주므로 불가능하다. 따라서, 우리는 이 PP 방법을 배제한다.
-- Meta를 SLC만 사용하는 SPFTL 방법이 MLC, TLC에서도 가장 효과적이려면,
-  SLC Meta 영역의 수명이 MLC, TLC로 사용되는 User 영역의 수명을 보장할 수 있어야 한다.
+- MLC에서 Partial page programming은 기존 프로그램된 data에 영향을 준다. 따라서 불가능하다.
+- 아래의 내용을 III. A. 에 반영함
+- Even in case of MLC-mode blocks, the partial page programming corrupted the corresponding LSB/MSB page data.
+- "Meta를 SLC만 사용하는 SPFTL 방법이 MLC, TLC에서도 효과적이려면,
+  SLC Meta 영역의 수명이 MLC, TLC로 사용되는 User 영역의 수명을 보장할 수 있어야 한다."
+- 위의 내용을 요구하는 것인지 판단되지 않음.
 
 MISSING: Please underline the differences between SPFTL and partial page programming [17], explaining in detail why your approach 
 is preferable. Numerical or experimental or simulation results are welcome in order to justify the advantages of SPFTL.
 
 - 기존 [Supage 논문]에서 PP는 SLC Mode에서 단순 Page Programming보다 24%, 8% 수명이 낮다. 따라서, PP 방법은 사용하지 않는다.
+- 아래의 내용으로 III A. 에 반영함
+- In our previous evaluation [7], the endurance cycles of partial page programming obtained 
+  from SLC-mode blocks were less than that of full page programming by 24% and 8%.
 
 MISSING: In V.C, you state that "the endurance of SP blocks is improved by 1.71 times due to subpage programming 
 in the 20nm class NAND chips [7]", but I did not find explicitly that value in the paper. Could you clarify how the value "1.71" 
@@ -110,11 +110,13 @@ is calculated?
 
 - 기존 [Supage 논문]에서 SLC-mode로 측정된 Fig. 8 Chip B의 SP2O_SLC의 수명 증가률(Normalized Endurance Cycle) 
   그래프에서 확인 가능하며, 1.71로 half-page 크기에서 가장 높은 수명을 보인다.
+- 아래의 내용으로 V. C. 에 반영함
+- This value is the normalized endurance cycle obtained from SLC-mode blocks with the half-page size.
 
 NOMENCLATURE: The renaming of SPFTL to SPFTL-BASE can be misleading, hence I suggest to use the complete name "SPFTL-BASE" 
 since the beginning of the paper.
 
-- Ok, it can be changed as SPFTL-BASE from the beginning
+- 논문의 제목과 연관이 있어 변경하지 않음
 
 GRAMMAR: The paper is in general clear and well written, although I have found a few typos and grammar mistakes: - 
 "metadata should be persist" -> "metadata should be persistent" - "to make the update persistent across a power cycles" -> 
