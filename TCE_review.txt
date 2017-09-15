@@ -6,6 +6,32 @@ I regret to inform that your paper entitled
 which was submitted for publication in the IEEE Transactions on Consumer Electronics cannot be published as it was submitted.
 
 
+#metadata	data	
+623	710	#Normal2
+414	1058	#Normal1
+2713	4749	#Heavy
+	Metadata	Data
+Pattern-A	623	710
+Pattern-B	414	1058
+Pattern-C	2713	4749
+	Metadata	Data
+Pattern-A	5.8 	0.7 
+Pattern-B	7.6 	1.0 
+Pattern-C	30.9 	4.6 
+		
+	Metadata	Data
+Pattern-A	5.8 	0.7 
+Pattern-B	7.6 	1.0 
+Pattern-C	30.9 	4.6 
+Heavy	30.87099457	31612 
+Normal	7.593658447	7776 
+Normal2	5.803504944	5943 
+	Metadata	Data
+Pattern-A	5943 	710
+Pattern-B	7776 	1058
+Pattern-C	31612 	4749
+
+
 REVIEWER 1
 
 This is an interesting paper, with some potential, but the paper fail to discuss the current state of the art. 
