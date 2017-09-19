@@ -1,4 +1,11 @@
 
+1. FTLs should keep track of the erase counts for all blocks to level wear among them.
+
+2. - In the analysis of all flash writes, a large fraction of FTL metadata was written 
+   - In the analysis of FTL metadata writes, a large fraction of flash writes was observed when real I/O traces were used.
+   - And we also -> We also
+
+
 Dear Jin-Soo Kim,
 
 I regret to inform that your paper entitled 
