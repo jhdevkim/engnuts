@@ -8,6 +8,20 @@ In case of MLC-mode blocks, the partial page programming corrupted the correspon
 
 2.
 
+We assume the blocks for metadata are operated in the
+SLC-mode [20], [21] whereas data blocks are in the MLC-mode. 
+MLC or TLC chip can be used as SLC-mode for each block which writes data with only LSB pages.
+Since FTL metadata occupies a small portion of
+storage space but has critical information, we utilize SLC-mode
+which provides the higher reliability and the longer lifetime
+than MLC-mode. We believe that the proposed scheme can be
+incorporated in MLC or TLC blocks without significant
+modifications. In this proposed scheme, however, we should
+consider the different endurance cycles between metadata and
+data blocks.
+
+
+
 
 ---
 
