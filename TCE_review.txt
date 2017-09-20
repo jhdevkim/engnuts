@@ -1,4 +1,16 @@
 
+1.
+
+In our previous evaluation with real chips from three NAND manufacturers,
+the endurance cycles of partial page programming obtained 
+from SLC-mode blocks were less than that of full page programming by up to 24% [9].
+In case of MLC-mode blocks, the partial page programming corrupted the corresponding LSB/MSB page data in all chips.
+
+2.
+
+
+---
+
 1. FTLs should keep track of the erase counts for all blocks to level wear among them.
 
 2. - In the analysis of all flash writes, a large fraction of FTL metadata was written 
