@@ -39,7 +39,9 @@ Dear Jung-Hoon Kim,
 
  
 
-Unfortunately at DATE we cannot help you as your proceedings were already submitted for publication in 2015 at IEEE Xplore and ACM Digital Library, who are the ones that own the copyright of your publication since that moment onwards. Therefore, in order to verify if your affiliation can be modified, you need to contact them directly and make the request to them, which are the only ones that could update the affiliation in their on-line libraries, but we cannot help from the DATE side
+Unfortunately at DATE we cannot help you as your proceedings were already submitted for publication in 2015 at IEEE Xplore and ACM Digital Library, who are the ones that own the copyright of your publication since that moment onwards. Therefore, 
+in order to verify if your affiliation can be modified, you need to contact them directly and make the request to them,
+which are the only ones that could update the affiliation in their on-line libraries, but we cannot help from the DATE side
 
  
 
@@ -109,7 +111,10 @@ Dear Jung-Hoon Kim,
 
  
 
-The information about your paper and your affiliation at the DATE website is correct and in sync with the affiliations mentioned in your original paper, IEEE Xplore Digital Library, ACM Digital Library, and thousands of distributed copies of the DATE 2015 proceedings. Therefore, we are sorry that we can’t accept to update your affiliation.
+The information about your paper and your affiliation at the DATE website is correct and in sync with the affiliations
+mentioned in your original paper, IEEE Xplore Digital Library, ACM Digital Library, and 
+thousands of distributed copies of the DATE 2015 proceedings. Therefore, 
+we are sorry that we can’t accept to update your affiliation.
 
  
 
