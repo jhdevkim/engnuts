@@ -32,3 +32,228 @@ I am sorry but I need your help, please.
 
 Sincerely,
 Jung-Hoon Kim.
+
+History
+-----------------------------------------------------------------------------------------------------------------------------
+Dear Jung-Hoon Kim,
+
+ 
+
+Unfortunately at DATE we cannot help you as your proceedings were already submitted for publication in 2015 at IEEE Xplore and ACM Digital Library, who are the ones that own the copyright of your publication since that moment onwards. Therefore, in order to verify if your affiliation can be modified, you need to contact them directly and make the request to them, which are the only ones that could update the affiliation in their on-line libraries, but we cannot help from the DATE side
+
+ 
+
+
+Best regards,
+
+ David Atienza, 
+
+DATE 2015 PC Chair.
+
+ 
+ 
+
+
+From: JungHoon Kim <jhdev.kim@samsung.com> 
+Sent: miércoles, 21 de marzo de 2018 0:45
+To: papers@date-conference.com; DATE Webmaster <webmaster@date-conference.com>; acoskun@bu.edu; Atienza Alonso David <david.atienza@epfl.ch>; DATE Conference Management - KIT <date@kitdresden.de>
+Subject: RE: AW: About my paper's affiliation in DATE 2015
+
+ 
+
+Dear Andreas,
+
+ 
+
+Thank you for replying kindly.
+
+ 
+
+If the problem is the sync, alternatively, 
+
+after only updating my affiliation, I can send my camera-ready paper which was submitted to DATE 2015.
+
+The modification is just the affiliation, not the others.
+
+ 
+
+The affiliation was mandatory for me to graduate from the university.
+
+I apologize for any inconvenience.
+
+I am sorry, I need your help.
+
+ 
+
+ 
+
+Sincerely,
+
+Jung-Hoon Kim
+
+ 
+
+ 
+
+--------- Original Message ---------
+
+Sender : DATE Webmaster <webmaster@date-conference.com>
+
+Date : 2018-03-20 19:54 (GMT+9)
+
+Title : AW: About my paper's affiliation in DATE 2015
+
+ 
+
+Dear Jung-Hoon Kim,
+
+ 
+
+The information about your paper and your affiliation at the DATE website is correct and in sync with the affiliations mentioned in your original paper, IEEE Xplore Digital Library, ACM Digital Library, and thousands of distributed copies of the DATE 2015 proceedings. Therefore, we are sorry that we can’t accept to update your affiliation.
+
+ 
+
+With best regards
+
+Andreas Vörg
+
+
+-- 
+
+
+Dr. Andreas Vörg
+ edacentrum GmbH
+ Schneiderberg 32
+ 30167 Hannover
+ Germany
+ 
+voerg@edacentrum.de
+www.edacentrum.de
+ fon +49 511 762-19686
+ fax +49 511 762-19695
+ 
+
+Geschäftsführer: Dr. Jürgen Haase ♦ Sitz: Hannover ♦ Registergericht: HRB Hannover 62045
+ 
+
+Mark your calendar: edaWorkshop 
+ will take place from May, 16th to 17th 2018 in Hannover, Germany
+ 
+
+ 
+
+
+
+Von: Coskun, Ayse Kivilcim [mailto:acoskun@bu.edu] 
+Gesendet: Dienstag, 20. März 2018 09:09
+An: DATE Webmaster <webmaster@date-conference.com>
+Betreff: Fwd: About my paper's affiliation in DATE 2015
+
+ 
+
+Andreas, do you think we can help with this case? 
+
+
+ 
+
+
+Ayse
+
+
+ 
+
+
+
+ Begin forwarded message:
+
+
+
+From: JungHoon Kim <jhdev.kim@samsung.com>
+Date: March 20, 2018 at 8:12:49 AM GMT+1
+To: "papers@date-conference.com" <papers@date-conference.com>
+Subject: FW: About my paper's affiliation in DATE 2015
+Reply-To: jhdev.kim@samsung.com
+
+
+
+ 
+
+Dear DATE,
+
+ 
+
+At that time, I was a student of Sunkyunkwan University.
+
+If it needs to be proved, I can send you Certificate of Sunkyunkwan University Enrollment in 2015.
+
+ 
+
+Thank you so much for all of your help.
+
+ 
+
+Sincerely,
+ Jung-Hoon Kim.
+
+
+
+
+-------------------------------------------------------------------------------------------------------------------------------
+
+
+
+To IEEE Xplore
+
+Dear IEEE Xplore,
+
+The title of the paper: Subpage Programming for Extending the Lifetime of NAND Flash Memory
+The product type: DATE 2015 conference
+IEEE Xplore URL: http://ieeexplore.ieee.org/document/7092449/
+
+I need IEEE Xplore's help with updating my affiliation error.
+I requested the affiliation update to the DATE side.
+But, the DATE side recommended IEEE Xplore's help.
+
+I submitted my paper to DATE 2015 conference.
+Three years has passed, however, 
+I have written a new paper as the first author by referring my DATE 2015 conference's paper.
+The new paper has been accepted from a journal and also published to IEEE Xplore.
+
+But, I have a problem with my affiliation as the first authorin my DATE 2015 conference's paper.
+My department of the university advises me to add 
+"College of Info. & Comm. Engineering, Sungkyunkwan University" to my affiliation.
+This affiliation is same with the third corresponding author, Jin-Soo Kim.
+
+At that time, I was a student of Sunkyunkwan University.
+If it needs to be proved, I can send you Certificate of Sunkyunkwan University Enrollment in 2015.
+The affiliation is mandatory for me to graduate from the university.
+I need IEEE Xplore's help, please.
+
+I found the following web-page.
+"IEEE policy is that the PDF version in the IEEE Xplore digital library is the version of record, 
+and cannot be changed. However, IEEE will review the error, and if appropriate, 
+will make a change to the bibliographic metadata record and annotate the abstract associated with the article."
+on the URL, "https://supportcenter.ieee.org/app/answers/detail/a_id/1012/related/1" of IEEE SUPPORT CENTER.
+
+Could you help me update or annotate my paper's affiliation on my DATE 2015 paper of IEEE Xplore URL?
+
+Current:
+Jung-Hoon Kim  
+Memory Business, Samsung Electronics Corp.
+
+Correction:
+Jung-Hoon Kim
+Memory Business, Samsung Electronics Corp. 
+College of Info. & Comm. Engineering, Sungkyunkwan University.
+
+or annotating "College of Info. & Comm. Engineering, Sungkyunkwan University"
+
+Please, I need IEE Xplore's help.
+
+I look forward to hearing from you.
+Thank you so much for all of your help.
+
+
+Sincerely,
+Jung-Hoon Kim.
+
