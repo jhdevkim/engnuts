@@ -262,3 +262,127 @@ Thank you so much for all of your help.
 Sincerely,
 Jung-Hoon Kim.
 
+
+-------------------------------------------------------------------------------------------------------------
+
+
+Subject: I need assistance with my affiliation
+ 
+ 
+
+Reference #: 180320-001032
+ 
+
+Auto-Response By (Administrator) (03/20/2018 09:26 PM)
+
+Thank you for contacting IEEE Meetings, Conferences & Events! We have received your email and we have begun our work on your request. For any future communications related to this inquiry please use the reference number which is listed in the email subject line. 
+
+If you have an urgent request, please call IEEE Meetings, Conferences & Events at +1 855 340 4333 (Toll-Free US & Canada) or +1 732 562 3878 (worldwide). 
+
+We thank you for taking the time to contact us, and we look forward to helping you with your inquiry. 
+
+Kind regards,
+IEEE Meetings, Conferences, and Events (MCE) 
+
+
+Customer By CSS Email (Jung-Hoon Kim) (03/20/2018 09:26 PM)
+
+
+ 
+
+Dear IEEE Xplore,
+
+ 
+
+The title of the paper: Subpage Programming for Extending the Lifetime of NAND Flash Memory
+ The product type: DATE 2015 conference
+ IEEE Xplore URL: http://ieeexplore.ieee.org/document/7092449/
+
+ 
+
+I need IEEE Xplore's help with updating my affiliation error.
+ I requested the affiliation update to the DATE side.
+ But, the DATE side recommended IEEE Xplore's help.
+
+ 
+
+I submitted my paper to DATE 2015 conference.
+ Three years has passed, however,
+ I have written a new paper as the first author by referring my DATE 2015 conference's paper.
+ The new paper has been accepted from a journal and also published to IEEE Xplore.
+
+ 
+
+But, I have a problem with my affiliation as the first authorin my DATE 2015 conference's paper.
+ My department of the university advises me to add
+ "College of Info. & Comm. Engineering, Sungkyunkwan University" to my affiliation.
+ This affiliation is same with the third corresponding author, Jin-Soo Kim.
+
+ 
+
+At that time, I was a student of Sunkyunkwan University.
+ If it needs to be proved, I can send you Certificate of Sunkyunkwan University Enrollment in 2015.
+ The affiliation is mandatory for me to graduate from the university.
+ I need IEEE Xplore's help, please.
+
+ 
+
+I found the following web-page.
+ "IEEE policy is that the PDF version in the IEEE Xplore digital library is the version of record,
+ and cannot be changed. However, IEEE will review the error, and if appropriate,
+ will make a change to the bibliographic metadata record and annotate the abstract associated with the article."
+ on the URL, "https://supportcenter.ieee.org/app/answers/detail/a_id/1012/related/1" of IEEE SUPPORT CENTER.
+
+ 
+
+Could you help me update or annotate my paper's affiliation on my DATE 2015 paper of IEEE Xplore URL?
+
+Current:
+ Jung-Hoon Kim 
+ Memory Business, Samsung Electronics Corp.
+
+Correction:
+ Jung-Hoon Kim
+ Memory Business, Samsung Electronics Corp.
+ College of Info. & Comm. Engineering, Sungkyunkwan University.
+
+or annotating "College of Info. & Comm. Engineering, Sungkyunkwan University"
+
+Please, I need IEE Xplore's help.
+
+ 
+
+I look forward to hearing from you.
+ Thank you so much for all of your help.
+
+ 
+
+ 
+
+
+ Sincerely,
+ Jung-Hoon Kim.
+
+ 
+
+ 
+
+ 
+
+-------------------------------------------------------------
+
+Jung-Hoon Kim
+
+FlashOS FTL / Software R&D Center
+
+DSR-C 8th floor B-Zone, Samsung ro 1, Hwasung-City, Gyeonggi-Do, South Korea 
+
+TEL: +82-10-7111-5130 FAX: +82-31-208-6799
+
+E-mail: jhdev.kim@samsung.com
+
+--------------------------------------------------------------
+ 
+
+
+
