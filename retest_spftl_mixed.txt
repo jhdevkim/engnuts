@@ -1,0 +1,209 @@
+
+
+spftl_seq_4
+
+#GXT PBT-V PBT PMT-V PMT
+BASEFTL        0.61    0.10    0.57    0.22    1.60
+SPFTL          0.31    0.13    0.28    0.28    0.82
+SPFTLlog       0.31    0.03		 0.29		 0.30    0.84
+
+
+spftl_seq_8/spftl_seq_16/spftl_seq_32
+
+#GXT PBT-V PBT PMT-V PMT
+BASEFTL            127.94    22.58    121.59    8.71    127.20
+SPFTL              64.38     27.66    60.79     10.79    66.45
+SPFTLlog					 64.95		  5.18		62.79			 5.07		 74.82
+
+spftl_random_5_5
+
+#GXT PBT-V PBT PMT-V PMT
+0.35    0.14    0.74    0    13.93
+0.19    0.29    0.64    0.34    7.27
+0.19	  0.07    0.66    0.46    7.07
+    
+spftl_random_1_9
+
+#GXT PBT-V PBT PMT-V PMT
+0.27    0.13    0.69    0.65    8.40
+0.18    0.24    0.54    1.60    5.49
+0.16	  0.06    0.56    1.28    4.27
+
+spftl_random_3_7
+
+#GXT PBT-V PBT PMT-V PMT
+0.34    0.14    0.74    0.14    13.12
+0.20    0.29    0.64    0.79    7.05
+0.19    0.07    0.66    0.76    6.66
+
+spftl_random.plot
+
+#!/usr/bin/env gnuplot
+# vim: nowrap syntax=gnuplot
+
+cd "C:\\Users\\김정훈\\Desktop\\jinsoo-spftl\\spftl-master\\graphs"
+
+
+#set term postscript eps enhanced solid size 2.5,3.3 font "Times-Roman" 24
+
+set term postscript eps enhanced monochrome solid size 3.5,4.3 font "Times-Roman" 24
+
+#set lmargin 2
+#set rmargin 2
+
+set grid
+set grid noxtics linetype 0 linecolor rgb "gray30";
+
+set xrange [-0.5:1.5]
+set yrange [0:16]
+
+set xtics out nomirror ( \
+  'SPFTL-BASE'  0,\
+  'SPFTL'  1\
+)
+
+set ytics scale 0
+
+set ylabel 'Amount of metadata written (GiB)'
+
+unset key
+
+set style data histogram
+set style histogram rowstacked
+set boxwidth 0.4
+
+# 5:5
+set output "spftl_random_5_5.eps"
+plot './spftl_random_5_5' \
+     u 1 title "GXT"   fill pattern 1 lt 1, \
+  "" u 2 title "BIT-GC" fill pattern 5 lt 1, \
+  "" u 3 title "BIT"   fill pattern 2 lt 1, \
+  "" u 4 title "PMT-GC" fill pattern 6 lt 1, \
+  "" u 5 title "PMT"   fill solid 0.5 lt 1
+
+
+
+# 3:7
+unset ylabel
+set output "spftl_random_3_7.eps"
+plot './spftl_random_3_7' \
+     u 1 title "GXT"   fill pattern 1 lt 1, \
+  "" u 2 title "BIT-GC" fill pattern 5 lt 1, \
+  "" u 3 title "BIT"   fill pattern 2 lt 1, \
+  "" u 4 title "PMT-GC" fill pattern 6 lt 1, \
+  "" u 5 title "PMT"   fill solid 0.5 lt 1
+
+
+# 1:9
+set key top right vertical invert
+set output "spftl_random_1_9.eps"
+plot './spftl_random_1_9' \
+     u 1 title "GXT"   fill pattern 1 lt 1, \
+  "" u 2 title "BIT-GC" fill pattern 5 lt 1, \
+  "" u 3 title "BIT"   fill pattern 2 lt 1, \
+  "" u 4 title "PMT-GC" fill pattern 6 lt 1, \
+  "" u 5 title "PMT"   fill solid 0.5 lt 1
+
+
+spftl_seq.plot
+
+#!/usr/bin/env gnuplot
+# vim: nowrap syntax=gnuplot
+
+
+cd "C:\\Users\\김정훈\\Desktop\\jinsoo-spftl\\spftl-master\\graphs"
+
+#set term postscript eps enhanced solid size 2.5,3.3 font "Times-Roman" 24
+
+
+# x3
+set term postscript eps enhanced monochrome solid size 3.5,4.3 font "Times-Roman" 24
+
+# x2
+#set term postscript eps enhanced solid size 3.5,3 font "Times-Roman" 24
+
+
+#set lmargin 3
+#set rmargin 3
+
+set grid
+set grid noxtics linetype 0 linecolor rgb "gray30";
+
+
+set xrange [-0.5:1.5]
+#set yrange [0:140]
+set yrange [0:3.5]
+
+set xtics out nomirror ( \
+  'SPFTL-BASE'  0,\
+  'SPFTL'  1\
+)
+
+
+#set ytics scale 0, 20, 140
+#set ytics 0,20,140
+
+set ytics scale 0
+
+
+set ylabel 'Amount of metadata written (GiB)'
+
+unset key
+
+
+set style data histogram
+set style histogram rowstacked
+#set boxwidth 0.6
+set boxwidth 0.4
+
+# 4 KB
+
+
+set yrange [0:3.5]
+
+set output "spftl_seq_4.eps"
+plot './spftl_seq_4' \
+     u 2 title "GXT"   fill pattern 1 lt 1, \
+  "" u 3 title "BIT-GC" fill pattern 5 lt 1, \
+  "" u 4 title "BIT"   fill pattern 2 lt 1, \
+  "" u 5 title "PMT-GC" fill pattern 6 lt 1, \
+  "" u 6 title "PMT"   fill solid 0.5 lt 1
+
+
+# 8 KB
+
+set yrange [0:450]
+set ylabel 'Amount of metadata written (MiB)'
+
+
+set output "spftl_seq_8.eps"
+plot './spftl_seq_8' \
+     u 2 title "GXT"   fill pattern 1 lt 1, \
+  "" u 3 title "BIT-GC" fill pattern 5 lt 1, \
+  "" u 4 title "BIT"   fill pattern 2 lt 1, \
+  "" u 5 title "PMT-GC" fill pattern 6 lt 1, \
+  "" u 6 title "PMT"   fill solid 0.5 lt 1
+
+# 16 KB
+
+unset ylabel
+
+
+set yrange [0:450]
+set ylabel 'Amount of metadata written (MiB)'
+
+set key top right vertical invert
+
+
+set output "spftl_seq_16.eps"
+plot './spftl_seq_16' \
+     u 2 title "GXT"   fill pattern 1 lt 1, \
+  "" u 3 title "BIT-GC" fill pattern 5 lt 1, \
+  "" u 4 title "BIT"   fill pattern 2 lt 1, \
+  "" u 5 title "PMT-GC" fill pattern 6 lt 1, \
+  "" u 6 title "PMT"   fill solid 0.5 lt 1
+
+  
+ 
+
+
