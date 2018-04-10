@@ -5,7 +5,7 @@ spftl_seq_4
 #GXT PBT-V PBT PMT-V PMT
 BASEFTL        0.61    0.10    0.57    0.22    1.60
 SPFTL          0.31    0.13    0.28    0.28    0.82
-SPFTLlog       0.31    0.03		 0.29		 0.30    0.84
+SPFTLlog       0.31    0.13	   0.28	   0.30    0.84
 
 
 spftl_seq_8/spftl_seq_16/spftl_seq_32
@@ -13,28 +13,28 @@ spftl_seq_8/spftl_seq_16/spftl_seq_32
 #GXT PBT-V PBT PMT-V PMT
 BASEFTL            127.94    22.58    121.59    8.71    127.20
 SPFTL              64.38     27.66    60.79     10.79    66.45
-SPFTLlog					 64.95		  5.18		62.79			 5.07		 74.82
+SPFTLlog		   64.22	 27.66	  60.79		 5.07	 74.82
 
 spftl_random_5_5
 
 #GXT PBT-V PBT PMT-V PMT
 0.35    0.14    0.74    0    13.93
 0.19    0.29    0.64    0.34    7.27
-0.19	  0.07    0.66    0.46    7.07
+0.19	0.29    0.64    0.46    7.07
     
 spftl_random_1_9
 
 #GXT PBT-V PBT PMT-V PMT
 0.27    0.13    0.69    0.65    8.40
 0.18    0.24    0.54    1.60    5.49
-0.16	  0.06    0.56    1.28    4.27
+0.16	0.24    0.54    1.28    4.27
 
 spftl_random_3_7
 
 #GXT PBT-V PBT PMT-V PMT
 0.34    0.14    0.74    0.14    13.12
 0.20    0.29    0.64    0.79    7.05
-0.19    0.07    0.66    0.76    6.66
+0.19    0.29    0.64    0.76    6.66
 
 spftl_random.plot
 
