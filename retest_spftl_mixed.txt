@@ -1,4 +1,5 @@
 
+Logging version : PMT logging, BIT subpage
 
 spftl_seq_4
 
