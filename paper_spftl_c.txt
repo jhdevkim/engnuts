@@ -1,0 +1,3208 @@
+/*
+ * SPFTL.c
+ *
+ *  Created on: 2016. 12. 6.
+ *      Author: 김정훈
+ */
+
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+#include "RAMNAND.h"
+#include "SPFTL.h"
+
+// just for result analysis
+STATISTICS statics;
+// reserving after init
+STATISTICS statics_init;
+// just for NAND copyback command
+unsigned char nand_copyback_buffer[8192];
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+// below three items just for subpage merging counts
+PAGEMAPLOCCNT page_loc_count;
+BLOCKGROUPLOCCNT block_group_loc_count;
+GLOBALCXTLOCCNT global_cxt_loc_count;
+
+unsigned char temp_4kb_buffer[4096];
+
+// just for global context
+unsigned char temp_global_copy_buffer[4096];
+DIFFGLOBALCXT* diff_global_cxt = (DIFFGLOBALCXT *)temp_global_copy_buffer;
+
+unsigned int current_pb_idx = 0xFFFFFFFF;
+unsigned int Latency4KBforPBT = 0;
+unsigned int Latency4KBforPMT = 0;
+#endif
+
+// end of analysis
+//-----------------------------------------------------------------------
+
+// for ftl context
+CONTEXT ftl_context;
+// for temp buffer
+unsigned char temp_buffer[8192];
+// for pmt map cache
+CACHEPMT cached_page_table;
+// for pmt map cache, dirty check
+CACHEPMTDIRTY pmt_misc;
+// for pbt cache
+CACHEPBT cached_block_table;
+// for pbt cache, dirty check
+CACHEPBTDIRTY pbt_misc;
+// gxt pointer
+GXTPOINTER gxtptr;
+GXTPTRBLKINFO gxtptrblk;
+
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+unsigned char temp_buffer_ext[8192];
+#endif
+
+
+// end of SPFTL cache memory
+//-----------------------------------------------------------------------
+
+void initLogBlock(LOG *target, int freepageoffset, int physicalblockaddr)
+{
+	target->fpofset = freepageoffset;
+	target->pbaddr = physicalblockaddr;
+	target->vpcnt = 0;
+	target->erscnt = 0;
+}
+
+void initMETALogBlock(METALOG *target, int freepageoffset, int physicalblockaddr)
+{
+	target->fpofset = freepageoffset;
+	target->pbaddr = physicalblockaddr;
+	target->vpcnt = 0;
+	target->erscnt = 0;
+}
+
+void initGCBlock(GCBLK *target, int physicalblockaddr)
+{
+	target->pbaddr = physicalblockaddr;
+	target->erscnt = 0;
+}
+
+void initMETAGCBlock(METAGCBLK *target, int physicalblockaddr)
+{
+	target->pbaddr = physicalblockaddr;
+	target->erscnt = 0;
+}
+
+
+void ftl_init(void)
+{
+	int i, j;
+	int pbt_max_pages = 0;
+
+	// Create ram nand for metadata area
+	ram_nand_init();
+
+	gxtptr.age = 0xFFFFFFFF;
+	gxtptr.erscnt[0] = 0;
+	gxtptr.erscnt[1] = 0;
+	gxtptr.gxtpbaddr = 0;
+	gxtptrblk.pbaddr = 0;
+
+	// nand_erase
+	gxtptrblk.fpofset = 0;
+	gxtptr.erscnt[0]++;
+	statics.meta_ftl_0_block_erase++;
+
+	statics.global_cxt_min_diff_bytes = 0xFFFFFFFF;
+	statics.block_map_min_diff_bytes = 0xFFFFFFFF;
+	statics.page_map_min_diff_bytes = 0xFFFFFFFF;
+
+	printf("ftl_context : %ld bytes\n", sizeof(ftl_context));
+
+	initMETALogBlock(&ftl_context.uptgxtblk, NAND_PAGES_PER_BLOCK, UPDATE_GC_BLOCK_INIT);
+	initMETALogBlock(&ftl_context.uptpbtblk, NAND_PAGES_PER_BLOCK, UPDATE_PBT_BLOCK_INIT);
+	initMETALogBlock(&ftl_context.uptpmtblk, NAND_PAGES_PER_BLOCK, UPDATE_PMT_BLOCK_INIT);
+	initLogBlock(&ftl_context.uptblk, NAND_PAGES_PER_BLOCK, UPDATE_BLOCK_INIT);
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+	initMETALogBlock(&ftl_context.sp_uptgxtblk, NAND_PAGES_PER_BLOCK, SP_UPDATE_GC_BLOCK_INIT);
+	initMETALogBlock(&ftl_context.sp_uptpbtblk, NAND_PAGES_PER_BLOCK, SP_UPDATE_PBT_BLOCK_INIT);
+	initMETALogBlock(&ftl_context.sp_uptpmtblk, NAND_PAGES_PER_BLOCK, SP_UPDATE_PMT_BLOCK_INIT);
+#endif
+
+	initGCBlock(&ftl_context.usrgcblk, FREE_BLOCK_FOR_UPDATE_BLOCK_GC_INIT);
+	initMETAGCBlock(&ftl_context.metagcblk, FREE_BLOCK_FOR_META_BLOCK_GC_INIT);
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+	initMETAGCBlock(&ftl_context.sp_metagcblk, SP_FREE_BLOCK_FOR_META_BLOCK_GC_INIT);
+#endif
+
+	memset(ftl_context.pmt, 0xFF, sizeof(unsigned short)*PMT_MAX_VALID_PAGE_COUNT);
+	memset(ftl_context.pbt, 0xFF, sizeof(unsigned short)*PBT_MAX_VALID_PAGE_COUNT);
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+	memset(ftl_context.pmt_log, 0xFF, sizeof(unsigned short)*PMT_MAX_VALID_PAGE_COUNT);
+	memset(ftl_context.pbt_log, 0xFF, sizeof(unsigned short)*PBT_MAX_VALID_PAGE_COUNT);
+#endif
+
+	memset(&temp_buffer, 0, sizeof(temp_buffer));
+
+	PBTPERVALIDPAGE *setofpb = (PBTPERVALIDPAGE *)temp_buffer;
+
+	j = 0;
+	i = 0;
+	do
+	{
+		setofpb->physicalblocks[i].vpcnt = 255;
+		i++;
+	} while (i < DATA_BLOCK_START);
+	// Metablock case valid page count 255 max, victim exception.
+
+	ftl_context.uptpbtblk.fpofset = 0;
+	ftl_context.uptpbtblk.erscnt++;
+
+	statics.meta_block_info_erase_8++;
+
+	ftl_context.pbt[j] =
+			((ftl_context.uptpbtblk.pbaddr << 7) +
+					ftl_context.uptpbtblk.fpofset);
+
+	nand_program(ftl_context.uptpbtblk.pbaddr,
+			ftl_context.uptpbtblk.fpofset, (unsigned char*)setofpb);
+
+	statics.meta_page_count++;
+	statics.meta_block_info_count++;
+
+	ftl_context.uptpbtblk.vpcnt++;
+	ftl_context.uptpbtblk.fpofset++;
+
+	ftl_context.gcvctim.pbaddr[j] = DATA_BLOCK_START;
+	ftl_context.gcvctim.vpcnt[j] = 0;
+
+	if ((TOTAL_BLOCK_COUNT % PB_COUNT_PER_VALID_PAGE) > 0)
+	{
+		pbt_max_pages = ((TOTAL_BLOCK_COUNT / PB_COUNT_PER_VALID_PAGE) + 1);
+	}
+	else
+	{
+		pbt_max_pages = ((TOTAL_BLOCK_COUNT / PB_COUNT_PER_VALID_PAGE));
+	}
+
+	j = 1;
+	do
+	{
+		// where setofpb points is clear up
+		memset(&temp_buffer, 0, sizeof(temp_buffer));
+
+		ftl_context.pbt[j] =
+			((ftl_context.uptpbtblk.pbaddr << 7) +
+					ftl_context.uptpbtblk.fpofset);
+
+		nand_program(ftl_context.uptpbtblk.pbaddr,
+				ftl_context.uptpbtblk.fpofset, (unsigned char*)setofpb);
+
+		statics.meta_page_count++;
+		statics.meta_block_info_count++;
+
+		ftl_context.uptpbtblk.vpcnt++;
+		ftl_context.uptpbtblk.fpofset++;
+
+		ftl_context.gcvctim.pbaddr[j] = (j*PB_COUNT_PER_VALID_PAGE);
+		ftl_context.gcvctim.vpcnt[j] = 0;
+
+		j++;
+	} while (j < pbt_max_pages);
+
+	ftl_context.uptpbtblk.fpofset = SLCNAND_PAGES_PER_BLOCK;
+
+	i = 0;
+	j = PMT_BLOCK_START;
+	do
+	{
+		ftl_context.pmtgcvctim.pmtblks[i].pbaddr = j++;
+		ftl_context.pmtgcvctim.pmtblks[i].pbunit.erscnt = 0;
+		ftl_context.pmtgcvctim.pmtblks[i].pbunit.vpcnt = 0;
+
+		i++;
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+	} while(i < (64 - PMT_BLOCK_COUNT));
+#else
+	} while(i < PMT_BLOCK_COUNT);
+#endif
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+	i = 0;
+	do
+	{
+		ftl_context.pmtgcvctim.sp_pmtblks[i].pbaddr = j++;
+		ftl_context.pmtgcvctim.sp_pmtblks[i].pbunit.erscnt = 0;
+		ftl_context.pmtgcvctim.sp_pmtblks[i].pbunit.vpcnt = 0;
+
+		i++;
+	} while (i < PMT_BLOCK_COUNT);
+
+	//memset(&page_loc_count, 64, sizeof(PAGEMAPLOCCNT));
+	memset(&page_loc_count, 65, sizeof(PAGEMAPLOCCNT)); // 0529
+	memset(&block_group_loc_count, 64, sizeof(BLOCKGROUPLOCCNT));
+	memset(&global_cxt_loc_count, 0x00, sizeof(GLOBALCXTLOCCNT));
+#endif
+
+	// Clear cache
+	memset(&cached_page_table, 0xFF, sizeof(CACHEPMT));
+	memset(&cached_block_table, 0xFF, sizeof(CACHEPBT));
+	memset(&pmt_misc, 0x00, sizeof(CACHEPMTDIRTY));
+	memset(&pbt_misc, 0x00, sizeof(CACHEPBTDIRTY));
+
+	// store cxt after ftl init format
+	ftl_context.uptgxtblk.fpofset = 0;
+	// erase 0 block
+	statics.meta_ftl_context_erase_8++;
+
+	nand_program(ftl_context.uptgxtblk.pbaddr,
+			ftl_context.uptgxtblk.fpofset, (unsigned char*)&ftl_context);
+
+	ftl_context.uptgxtblk.fpofset++;
+
+	statics.meta_page_count++;
+	statics.meta_ftl_context_count++;
+
+	gxtptr.age--;
+
+	nand_program(gxtptrblk.pbaddr,
+			gxtptrblk.fpofset, (unsigned char*)&gxtptr);
+
+	statics.meta_ftl_0_block_write_page_count++;
+
+	gxtptrblk.fpofset++;
+
+	memcpy(&statics_init, &statics, sizeof(statics));
+}
+
+void ftl_close(void)
+{
+	// nand clear
+	ram_nand_free();
+
+	// cache clear, e.g. SRAM
+	memset(&statics, 0, sizeof(statics));
+	memset(&statics_init, 0, sizeof(statics));
+	memset(nand_copyback_buffer, 0, sizeof(nand_copyback_buffer));
+	memset(&ftl_context, 0, sizeof(ftl_context));
+	memset(temp_buffer, 0, sizeof(temp_buffer));
+	memset(&cached_page_table, 0, sizeof(cached_page_table));
+	memset(&pmt_misc, 0, sizeof(pmt_misc));
+	memset(&cached_block_table, 0, sizeof(cached_block_table));
+	memset(&pbt_misc, 0, sizeof(pbt_misc));
+}
+//int flush_num = 0;
+
+int _check_update_block(void)
+{
+	unsigned int temp;
+	int flush_lpn_cnt, flush_pb_cnt;
+
+	//if (ftl_context.uptblk.fpofset < NAND_PAGES_PER_BLOCK)
+	//{
+	//	return 0;
+	//}
+
+	if (ftl_context.uptblk.fpofset < NAND_PAGES_PER_BLOCK)
+	{
+		// 8% flush because of the journal
+		if (((ftl_context.uptblk.fpofset > 0)
+			&& ((ftl_context.uptblk.fpofset % 10) == 0)))
+		{
+			flush_lpn_cnt = _flush_lpn();
+			_store_ftl_context();
+		}
+
+		return 0;
+	}
+
+	// just for 1 updateblock scanning at power-on state to recovery metadata
+	if (ftl_context.uptblk.fpofset >= NAND_PAGES_PER_BLOCK)
+	{
+		//flush_num++;
+		// flush pbt, pmt 둘 다 수행한다.
+		//printf("flush\n");
+		flush_lpn_cnt = _flush_lpn(); // 이거 하는 중에 꺼지면, 처음부터 다시 scan해서 pbt랑 맞추면 되고, 
+		// 이거 다하고 꺼져도 lpn이랑 spare가 모두 같은 현상이 발생하므로 처음부터 다시 scan해서 pbt랑 맞추면 됨
+		flush_pb_cnt = _flush_pbt();
+		//printf("flush lpn count : %d\n",flush_lpn_cnt);
+
+		if (flush_lpn_cnt < 0 || flush_pb_cnt < 0)
+		{
+			printf("flush -1 ret\n");
+		}
+	}
+
+	// garbage collection for getting a log block
+	temp = _get_update_log_by_gc();
+
+	if (temp != 0)
+	{
+		printf("get log index from gc : %d error \n", temp);
+		DBG_ASSERT(0);
+	}
+
+	return 0;
+}
+
+int _change_pbt_block_by_gc(METALOG* p_pbtblock, int selected_pbrowindex)
+{
+	int temp;
+	int temp_block;
+	int temp_erase_count;
+	int fb_fpofset;
+
+	METAGCBLK* p_freeblock = &ftl_context.metagcblk;
+	unsigned short* block_loc_map = ftl_context.pbt;
+
+#if (0)
+	unsigned int temp2 = block_group_loc_count.block_group_count[selected_pbrowindex];
+	if (temp2 < 64)
+	{
+		p_freeblock = &ftl_context.sp_metagcblk;
+		block_loc_map = ftl_context.pbt_log;
+	}
+#endif
+
+	// erase free block for pbt block gc
+	nand_erase(p_freeblock->pbaddr);
+	p_freeblock->erscnt++;
+	fb_fpofset = 0;
+#if (0)
+	if (block_loc_map == ftl_context.pbt)
+	{
+		statics.meta_block_info_erase_8++;
+	}
+	else
+	{
+		statics.meta_block_info_erase_4++;
+	}
+#else
+	statics.meta_block_info_erase_8++;
+#endif
+	statics.num_pbt_gc_cnt++;
+
+	temp = 0;
+	do
+	{
+		
+		if ((temp != selected_pbrowindex) && 
+			(p_pbtblock->pbaddr == (block_loc_map[temp] / NAND_PAGES_PER_BLOCK)))
+		{
+#if ((FTL_TYPE & FTL_SPFTL) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+			// map data copy
+			nand_read_4(p_pbtblock->pbaddr, (block_loc_map[temp] % NAND_PAGES_PER_BLOCK),
+				(unsigned char*)nand_copyback_buffer);
+
+			nand_program_4(p_freeblock->pbaddr,
+				fb_fpofset, (unsigned char*)nand_copyback_buffer);
+
+			statics.meta_block_valid_4++;
+			statics.meta_block_info_count_4++;
+
+			statics.meta_block_valid++;
+			statics.meta_page_count++;
+			statics.meta_block_info_count++;
+#else
+
+#if (0)
+			if (block_loc_map == ftl_context.pbt)
+			{
+				// map data copy
+				nand_read(p_pbtblock->pbaddr, (block_loc_map[temp] % NAND_PAGES_PER_BLOCK),
+					(unsigned char*)nand_copyback_buffer);
+
+				nand_program(p_freeblock->pbaddr,
+					fb_fpofset, (unsigned char*)nand_copyback_buffer);
+
+				statics.meta_block_info_count_8++;
+			}
+			else
+			{
+				// map data copy
+				nand_read_4(p_pbtblock->pbaddr, (block_loc_map[temp] % NAND_PAGES_PER_BLOCK),
+					(unsigned char*)nand_copyback_buffer);
+
+				nand_program_4(p_freeblock->pbaddr,
+					fb_fpofset, (unsigned char*)nand_copyback_buffer);
+
+				statics.meta_block_valid_4++;
+				statics.meta_block_info_count_4++;
+			}
+
+			statics.meta_block_valid++;
+			statics.meta_page_count++;
+			statics.meta_block_info_count++;
+
+#else
+
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+			Latency4KBforPBT = 1;
+#endif
+			// map data copy
+			nand_read(p_pbtblock->pbaddr, (block_loc_map[temp] % NAND_PAGES_PER_BLOCK),
+				(unsigned char*)nand_copyback_buffer);
+
+			nand_program(p_freeblock->pbaddr,
+				fb_fpofset, (unsigned char*)nand_copyback_buffer);
+
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+			Latency4KBforPBT = 0;
+#endif
+			statics.meta_block_valid++;
+			statics.meta_page_count++;
+			statics.meta_block_info_count++;
+#endif
+
+#endif
+
+			// map change
+			block_loc_map[temp] =
+				((p_freeblock->pbaddr * NAND_PAGES_PER_BLOCK) + fb_fpofset);
+
+			fb_fpofset++;
+
+		}
+
+		temp++;
+
+	} while (temp < PBT_MAX_VALID_PAGE_COUNT);
+
+	// switch block
+	temp_block = p_freeblock->pbaddr;
+	temp_erase_count = p_freeblock->erscnt;
+
+	p_freeblock->pbaddr = p_pbtblock->pbaddr;
+	p_freeblock->erscnt = p_pbtblock->erscnt;
+
+	p_pbtblock->pbaddr = temp_block;
+	p_pbtblock->erscnt = temp_erase_count;
+	p_pbtblock->fpofset = fb_fpofset;
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+	LOG tmpLog;
+	tmpLog.erscnt = p_freeblock->erscnt;
+	tmpLog.pbaddr = p_freeblock->pbaddr;
+
+	add_diff_logs(0, &tmpLog, CONTEXT_FREE_METABLOCK_FOR_GC);
+	add_diff_logs(0, (LOG *)p_pbtblock, CONTEXT_LOG_WRITABLE_BLOCKS);
+#endif
+
+	return 0;
+}
+
+int __store_data_block_info(int pbrowindex)
+{
+	int block_attribute;
+
+	METALOG* p_pbtblock;
+	unsigned short* block_loc_map;
+	unsigned char* store_block_map;
+
+	p_pbtblock = &ftl_context.uptpbtblk;
+	block_loc_map = ftl_context.pbt;
+	store_block_map = (unsigned char*)temp_buffer;
+
+#if (0)
+	unsigned int temp2 = block_group_loc_count.block_group_count[pbrowindex];
+
+	if (temp2 < 64)
+	{
+		p_pbtblock = &ftl_context.sp_uptpbtblk;
+		block_loc_map = ftl_context.pbt_log;
+		store_block_map = (unsigned char*)temp_4kb_buffer;
+	}
+#endif
+
+	block_attribute = 0;
+
+	if (p_pbtblock->fpofset >= SLCNAND_PAGES_PER_BLOCK)
+	{
+		int ret;
+
+		ret = _change_pbt_block_by_gc(p_pbtblock, pbrowindex);
+		block_attribute = 1;
+
+		if (ret < 0)
+		{
+			DBG_ASSERT(0);
+		}
+	}
+
+#if (0)
+	if (temp2 == 64)
+	{
+		block_group_loc_count.block_group_count[pbrowindex] = 1;
+	}
+	else
+	{
+		block_group_loc_count.block_group_count[pbrowindex]++;
+	}
+#endif
+
+#if ((FTL_TYPE & FTL_SPFTL) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+	nand_program_4(p_pbtblock->pbaddr,
+		p_pbtblock->fpofset, store_block_map);
+
+	statics.meta_page_count++;
+	statics.meta_block_info_count_4++;
+	statics.meta_block_info_count++;
+#else
+
+#if (0)
+	if (block_loc_map == ftl_context.pbt)
+	{
+		nand_program(p_pbtblock->pbaddr,
+			p_pbtblock->fpofset, store_block_map);
+
+		//ftl_context.pmt_log[pbrowindex] = 0xFFFF;
+		ftl_context.pbt_log[pbrowindex] = 0xFFFF;
+
+		statics.meta_block_info_count_8++;
+	}
+	else
+	{
+		nand_program_4(p_pbtblock->pbaddr,
+			p_pbtblock->fpofset, store_block_map);
+
+		statics.meta_block_info_count_4++;
+	}
+
+	statics.meta_page_count++;
+	statics.meta_block_info_count++;
+#else
+
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+	Latency4KBforPBT = 1;
+#endif
+
+	nand_program(p_pbtblock->pbaddr,
+		p_pbtblock->fpofset, store_block_map);
+
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+	Latency4KBforPBT = 0;
+#endif
+
+	statics.meta_page_count++;
+	statics.meta_block_info_count++;
+#endif
+
+#endif
+
+	// map change
+	block_loc_map[pbrowindex] =
+		((p_pbtblock->pbaddr * NAND_PAGES_PER_BLOCK) +
+		p_pbtblock->fpofset);
+
+	p_pbtblock->fpofset++;
+
+	// just copy on same block
+	p_pbtblock->vpcnt++;
+	p_pbtblock->vpcnt--;
+
+	// if block's attribute is changed
+	// ftl_context have to be stored to ftl context block
+	if (block_attribute > 0)
+	{
+		// store ftl context
+		// pbt하고 다른 것도 할 수 있으므로,
+		// context는 모든 작업이 수행된 이후,
+		// 한번만 저장되도록 하는 것이 맞다.
+		// 따라서, return 값으로 ftl context를 적는 여부를 알려줄 것.
+		// return 보단 locking 같은 기능으로,
+		// store ftl context안에서 lock 걸리면 저장 하지 않는 기능도 괜찮은 듯.
+		_store_ftl_context();
+	}
+
+	return 0;
+}
+
+int _load_data_block_info(unsigned int physicalblockaddr)
+{
+	int temp = 0;
+	int pb_row_idx;
+	int pb_column_idx;
+	int phyblock;
+	int phypage;
+	int ret;
+	int cache_idx = IDX_EMPTY;
+	PBTPERVALIDPAGE *setofpb = (PBTPERVALIDPAGE *)temp_buffer;
+
+
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+	DIFFCACHEBLOCK *diffblockcache;
+	unsigned int diffloc;
+	unsigned int temp2;
+#endif
+
+	temp = 0;
+	do
+	{
+		if (cached_block_table.tong[temp].pbaddr == physicalblockaddr)
+		{
+			return temp;
+		}
+
+		temp++;
+	} while (temp < PB_CAHCE_MAX_COUNT);
+
+	temp = 0;
+	do
+	{
+		if (pbt_misc.updated[temp] == 0)
+		{
+			cache_idx = temp;
+			break;
+		}
+
+		temp++;
+	} while (temp < PB_CAHCE_MAX_COUNT);
+
+	if (cache_idx == IDX_EMPTY)
+	{
+		// VICTIM의 PB_ROW의 PB valid page를 temp buffer에 loading한 이후,
+		// 같은 row에 있는 모든 pb를 한꺼번에 update 하고,
+		// PB valid page를 store 한다.
+		pb_row_idx = (cached_block_table.tong[PBT_CACHE_VICTIM_DEFAULT_IDX].pbaddr / PB_COUNT_PER_VALID_PAGE);
+		phyblock = (ftl_context.pbt[pb_row_idx] / NAND_PAGES_PER_BLOCK);
+		phypage = ftl_context.pbt[pb_row_idx] % NAND_PAGES_PER_BLOCK;
+
+#if ((FTL_TYPE & FTL_SPFTL) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+		nand_read_4(phyblock, phypage, (unsigned char*)setofpb);
+#else
+
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+		Latency4KBforPBT = 1;
+#endif
+
+		nand_read(phyblock, phypage, (unsigned char*)setofpb);
+
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+		Latency4KBforPBT = 0;
+#endif
+
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+		
+		diffblockcache = (DIFFCACHEBLOCK *)temp_4kb_buffer;
+		diffloc = ftl_context.pbt_log[pb_row_idx];
+
+		memset(diffblockcache, 0xFF, sizeof(DIFFCACHEBLOCK));
+		diffblockcache->block_map_count = 0;
+
+		if (diffloc != 0xFFFF)
+		{
+			nand_read_4((diffloc / NAND_PAGES_PER_BLOCK), (diffloc % NAND_PAGES_PER_BLOCK),
+				(unsigned char*)temp_4kb_buffer);
+
+			if (diffblockcache->block_map_count > 0)
+			{
+				temp2 = 0;
+				do
+				{
+					setofpb->physicalblocks[diffblockcache->blockinfo_blocks[temp2].block_index_for_log].erscnt =
+						diffblockcache->blockinfo_blocks[temp2].erase_count;
+
+					setofpb->physicalblocks[diffblockcache->blockinfo_blocks[temp2].block_index_for_log].vpcnt =
+						diffblockcache->blockinfo_blocks[temp2].valid_page_count;
+
+					temp2++;
+				} while (temp2 < diffblockcache->block_map_count);
+			}
+		}
+
+#endif
+
+#endif
+
+		temp = 0;
+		do
+		{
+			int temp_pb_row_idx =
+				(cached_block_table.tong[temp].pbaddr / PB_COUNT_PER_VALID_PAGE);
+
+			if (pb_row_idx == temp_pb_row_idx)
+			{
+				int temp_pb_column_idx =
+					(cached_block_table.tong[temp].pbaddr % PB_COUNT_PER_VALID_PAGE);
+
+				setofpb->physicalblocks[temp_pb_column_idx].erscnt =
+					cached_block_table.tong[temp].pbunit.erscnt;
+				setofpb->physicalblocks[temp_pb_column_idx].vpcnt =
+					cached_block_table.tong[temp].pbunit.vpcnt;
+
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+				if (diffblockcache->block_map_count < 64) // 511
+				{
+					diffblockcache = (DIFFCACHEBLOCK *)temp_4kb_buffer;
+
+					diffblockcache->blockinfo_blocks[diffblockcache->block_map_count].erase_count
+						= setofpb->physicalblocks[temp_pb_column_idx].erscnt;
+
+					diffblockcache->blockinfo_blocks[diffblockcache->block_map_count].valid_page_count
+						= setofpb->physicalblocks[temp_pb_column_idx].vpcnt;
+
+					diffblockcache->blockinfo_blocks[diffblockcache->block_map_count].block_index_for_log
+						= temp_pb_column_idx;
+
+					diffblockcache->block_map_count++;
+				}
+
+				if (diffblockcache->block_map_count == 64) //511
+				{
+					block_group_loc_count.block_group_count[pb_row_idx] = 64;
+				}
+#endif
+
+				pbt_misc.updated[temp] = 0;
+			}
+
+			temp++;
+		} while (temp < PB_CAHCE_MAX_COUNT);
+
+		ret = __store_data_block_info(pb_row_idx);
+
+		if (ret < 0)
+		{
+			DBG_ASSERT(0);
+		}
+
+		// PBT_CACHE_VICTIM_DEFAULT_IDX를 저장했다, 또한 이와 같은 row도 저장됨.
+		// 하지만, PBT_CACHE_VICTIM_DEFAULT_IDX를 cache_idx로 설정한다.
+		cache_idx = PBT_CACHE_VICTIM_DEFAULT_IDX;
+	}
+
+	// 0802, cache_idx에 pb 정보를, temp_buffer이용하여 load 해야한다.
+	pb_row_idx = (physicalblockaddr / PB_COUNT_PER_VALID_PAGE);
+	phyblock = (ftl_context.pbt[pb_row_idx] / NAND_PAGES_PER_BLOCK);
+	phypage = (ftl_context.pbt[pb_row_idx] % NAND_PAGES_PER_BLOCK);
+
+#if ((FTL_TYPE & FTL_SPFTL) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+	nand_read_4(phyblock, phypage,
+		(unsigned char*)temp_buffer);
+
+#else
+
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+	Latency4KBforPBT = 1;
+#endif
+
+	nand_read(phyblock, phypage,
+		(unsigned char*)temp_buffer);
+
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+	Latency4KBforPBT = 0;
+#endif
+
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+
+	diffblockcache = (DIFFCACHEBLOCK *)temp_4kb_buffer;
+	diffloc = ftl_context.pbt_log[pb_row_idx];
+
+	if (diffloc != 0xFFFF)
+	{
+		nand_read_4((diffloc / NAND_PAGES_PER_BLOCK), (diffloc % NAND_PAGES_PER_BLOCK),
+			(unsigned char*)temp_4kb_buffer);
+
+		//if (diffblockcache->block_map_count == 0)
+		//{
+		//	//DBG_ASSERT(0);
+		//	return 0;
+		//}
+
+		if (diffblockcache->block_map_count > 0)
+		{
+			temp2 = 0;
+			do
+			{
+				setofpb->physicalblocks[diffblockcache->blockinfo_blocks[temp2].block_index_for_log].erscnt =
+					diffblockcache->blockinfo_blocks[temp2].erase_count;
+
+				setofpb->physicalblocks[diffblockcache->blockinfo_blocks[temp2].block_index_for_log].vpcnt =
+					diffblockcache->blockinfo_blocks[temp2].erase_count;
+
+				temp2++;
+			} while (temp2 < diffblockcache->block_map_count);
+		}
+	}
+
+#endif
+
+#endif
+
+	pb_column_idx = (physicalblockaddr % PB_COUNT_PER_VALID_PAGE);
+
+	cached_block_table.tong[cache_idx].pbaddr = physicalblockaddr;
+	cached_block_table.tong[cache_idx].pbunit.erscnt =
+		setofpb->physicalblocks[pb_column_idx].erscnt;
+	cached_block_table.tong[cache_idx].pbunit.vpcnt =
+		setofpb->physicalblocks[pb_column_idx].vpcnt;
+
+	return cache_idx;
+}
+
+void _update_min_db_valid_count(int physicalblockaddr, int validpagecount, int erasecount, int isstore)
+{
+	int temp;
+	unsigned int min_idx;
+	unsigned int min_value;
+	//unsigned int base_phyblock;
+	PBTPERVALIDPAGE *setofpb = (PBTPERVALIDPAGE *)temp_buffer;
+
+	int pb_row_idx = (physicalblockaddr / PB_COUNT_PER_VALID_PAGE);
+	int phyblock = (ftl_context.pbt[pb_row_idx] / NAND_PAGES_PER_BLOCK);
+	int phypage = ftl_context.pbt[pb_row_idx] % NAND_PAGES_PER_BLOCK;
+
+#if (0)
+	DIFFCACHEBLOCK *diffblockcache;
+	unsigned int diffloc;
+	unsigned int temp2;
+#endif
+
+#if ((FTL_TYPE & FTL_SPFTL) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+	nand_read_4(phyblock, phypage, (unsigned char*)setofpb);
+#else
+	nand_read(phyblock, phypage, (unsigned char*)setofpb);
+
+#if (0)
+	diffblockcache = (DIFFCACHEBLOCK *)temp_4kb_buffer;
+	diffloc = ftl_context.pbt_log[pb_row_idx];
+
+	memset(diffblockcache, 0xFF, sizeof(DIFFCACHEBLOCK));
+	diffblockcache->block_map_count = 0;
+
+	if (diffloc != 0xFFFF)
+	{
+		nand_read_4((diffloc / NAND_PAGES_PER_BLOCK), (diffloc % NAND_PAGES_PER_BLOCK),
+			(unsigned char*)temp_4kb_buffer);
+
+		if (diffblockcache->block_map_count > 0)
+		{
+			temp2 = 0;
+			do
+			{
+				setofpb->physicalblocks[diffblockcache->blockinfo_blocks[temp2].block_index_for_log].erscnt =
+					diffblockcache->blockinfo_blocks[temp2].erase_count;
+
+				setofpb->physicalblocks[diffblockcache->blockinfo_blocks[temp2].block_index_for_log].vpcnt =
+					diffblockcache->blockinfo_blocks[temp2].valid_page_count;
+
+				temp2++;
+			} while (temp2 < diffblockcache->block_map_count);
+		}
+	}
+
+#endif
+
+#endif
+
+
+	int temp_pb_column_idx = (physicalblockaddr % PB_COUNT_PER_VALID_PAGE);
+
+	setofpb->physicalblocks[temp_pb_column_idx].vpcnt = validpagecount;
+	setofpb->physicalblocks[temp_pb_column_idx].erscnt = erasecount;
+
+#if (0)
+	if (diffblockcache->block_map_count < 64)// 511
+	{
+		diffblockcache = (DIFFCACHEBLOCK *)temp_4kb_buffer;
+
+		diffblockcache->blockinfo_blocks[diffblockcache->block_map_count].erase_count
+			= setofpb->physicalblocks[temp_pb_column_idx].erscnt;
+
+		diffblockcache->blockinfo_blocks[diffblockcache->block_map_count].valid_page_count
+			= setofpb->physicalblocks[temp_pb_column_idx].vpcnt;
+
+		diffblockcache->blockinfo_blocks[diffblockcache->block_map_count].block_index_for_log
+			= temp_pb_column_idx;
+
+		diffblockcache->block_map_count++;
+	}
+
+	if (diffblockcache->block_map_count == 64)
+	{
+		block_group_loc_count.block_group_count[pb_row_idx] = 64;
+	}
+#endif
+
+	min_idx = 0;
+	min_value = INF_VALID_PAGE_COUNT;
+
+	temp = 1;
+	do
+	{
+		int temp_phyblock;
+
+		if (setofpb->physicalblocks[temp].vpcnt < min_value)
+		{
+			temp_phyblock = ((pb_row_idx * PB_COUNT_PER_VALID_PAGE) + temp);
+
+			if ((temp_phyblock > META_BLOCK_END) &&
+					(temp_phyblock != ftl_context.uptblk.pbaddr) &&
+					(temp_phyblock != ftl_context.usrgcblk.pbaddr) &&
+					(temp_phyblock < TOTAL_BLOCK_COUNT))
+			{
+				min_value = setofpb->physicalblocks[temp].vpcnt;
+				min_idx = temp;
+			}
+		}
+
+		temp++;
+	} while (temp < PB_COUNT_PER_VALID_PAGE);
+
+	ftl_context.gcvctim.pbaddr[pb_row_idx] =
+		((pb_row_idx * PB_COUNT_PER_VALID_PAGE) + min_idx);
+	ftl_context.gcvctim.vpcnt[pb_row_idx] = min_value;
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+//	add_diff_locs(pb_row_idx, ftl_context.gcvctim.pbaddr[pb_row_idx], CONTEXT_BLOCK_VICTIM);
+//	add_diff_locs(pb_row_idx, ftl_context.gcvctim.vpcnt[pb_row_idx], CONTEXT_BLOCK_VICTIM_VALID);
+#endif
+
+	if (isstore)
+	{
+		int ret = __store_data_block_info(pb_row_idx);
+
+		if (ret < 0)
+		{
+			DBG_ASSERT(0);
+		}
+	}
+}
+
+
+int _get_update_log_by_gc(void)
+{
+	int temp;
+	int temp_block_addr;
+	int temp_erase_count;
+
+	int min_pb_index;
+	unsigned int min_pb_valid_page_count;
+
+	int valid_page_count;
+
+	// to find a db index which has minum valid page count
+	min_pb_valid_page_count = ftl_context.gcvctim.vpcnt[0];
+	min_pb_index = 0;
+
+	temp = 1;
+	do
+	{
+		if (ftl_context.gcvctim.vpcnt[temp] < min_pb_valid_page_count)
+		{
+			min_pb_valid_page_count = ftl_context.gcvctim.vpcnt[temp];
+			min_pb_index = temp;
+		}
+
+		temp++;
+	} while (temp < PBT_MAX_VALID_PAGE_COUNT);
+
+	// if updatelog less than db min
+	if (ftl_context.uptblk.vpcnt <= min_pb_valid_page_count)
+	{
+		int fb_fpofset = 0;
+		// erase last free block
+		nand_erase(ftl_context.usrgcblk.pbaddr);
+		ftl_context.usrgcblk.erscnt++;
+
+		// compact a log block
+		// find physical block from cached page map table
+		valid_page_count = 0;
+
+		if (ftl_context.uptblk.vpcnt > 0)
+		{
+			unsigned int spare_oob;
+			unsigned int map_idx;
+			L2PUNIT temp_l2p[NAND_PAGES_PER_BLOCK];
+
+			memset(temp_l2p, 0xFF, sizeof(temp_l2p));
+
+			temp_block_addr = ftl_context.uptblk.pbaddr;
+
+			temp = 0;
+			do
+			{
+				spare_oob = nand_read_spare(temp_block_addr, temp);
+
+				if (spare_oob == 0xFFFFFFFF)
+				{
+					break;
+				}
+
+				map_idx = _load_page_map(spare_oob * SECTORS_PER_PAGE);
+
+				if (((temp_block_addr << 7) + temp) !=
+					cached_page_table.tong[map_idx].ppn)
+				{
+					temp++;
+					continue;
+				}
+
+				temp_l2p[temp].lpn = spare_oob;
+				temp_l2p[temp].ppn = ((temp_block_addr * NAND_PAGES_PER_BLOCK) + temp);
+
+				temp++;
+
+			} while (temp < NAND_PAGES_PER_BLOCK);
+
+			if (temp == 0)
+			{
+				printf("valid page count mismatch in log\n");
+				DBG_ASSERT(0);
+			}
+
+			temp = 0;
+			do
+			{
+				if (temp_l2p[temp].lpn != 0xFFFFFFFF)
+				{
+					map_idx = _load_page_map(temp_l2p[temp].lpn * SECTORS_PER_PAGE);
+
+					nand_write_spare(ftl_context.usrgcblk.pbaddr,
+							fb_fpofset, temp_l2p[temp].lpn);
+
+					statics.compaction_page_8++;
+					statics.compaction_page_count++;
+
+					statics.usr_page_cnt++;
+					statics.usr_gc_page_cnt++;
+
+					cached_page_table.tong[map_idx].ppn =
+						((ftl_context.usrgcblk.pbaddr * NAND_PAGES_PER_BLOCK)
+						+ fb_fpofset);
+
+					fb_fpofset++;
+
+					pmt_misc.updated[map_idx] = 1;
+
+					valid_page_count++;
+				}
+
+				temp++;
+			} while (temp < NAND_PAGES_PER_BLOCK);
+
+		}
+
+#if (CHECK_VALID_COUNT)
+		if (valid_page_count != ftl_context.uptblk.vpcnt)
+		{
+			printf("compaction fail with valid page count mismatch : %d, %d\n",
+				valid_page_count, ftl_context.uptblk.vpcnt);
+			DBG_ASSERT(0);
+		}
+#endif
+
+		if (fb_fpofset >= NAND_PAGES_PER_BLOCK)
+		{
+			printf("compaction fail with free page over the number of NAND page: %d\n",
+					fb_fpofset);
+			DBG_ASSERT(0);
+		}
+
+		// change block attributes
+		temp_block_addr = ftl_context.uptblk.pbaddr;
+		temp_erase_count = ftl_context.uptblk.erscnt;
+
+		ftl_context.uptblk.pbaddr =
+			ftl_context.usrgcblk.pbaddr;
+		ftl_context.uptblk.erscnt =
+			ftl_context.usrgcblk.erscnt;
+		ftl_context.uptblk.fpofset = fb_fpofset;
+
+		ftl_context.usrgcblk.pbaddr = temp_block_addr;
+		ftl_context.usrgcblk.erscnt = temp_erase_count;
+	}
+	// if db has min valid page count
+	else
+	{
+		temp_block_addr = ftl_context.gcvctim.pbaddr[min_pb_index];
+
+		int cache_pb_idx = _load_data_block_info(temp_block_addr);
+		int temp_pb_valid_page_count;
+
+		// data block to free block(pmt, context), free block to log(context), log to data block (grp store)
+		temp_erase_count = cached_block_table.tong[cache_pb_idx].pbunit.erscnt;
+		temp_pb_valid_page_count = cached_block_table.tong[cache_pb_idx].pbunit.vpcnt;
+
+		int fb_fpofset = 0;
+		int fb_vpcnt = 0;
+
+		if (temp_pb_valid_page_count > 0)	 // if (min_pb_valid_page_count > 0)
+		{
+			unsigned int spare_oob;
+			unsigned int map_idx;
+			L2PUNIT temp_l2p[128];
+
+			memset(temp_l2p, 0xFF, sizeof(temp_l2p));
+
+			temp = 0;
+			do
+			{
+				spare_oob = nand_read_spare(temp_block_addr, temp);
+
+				if (spare_oob == 0xFFFFFFFF)
+				{
+					break;
+				}
+
+				map_idx = _load_page_map(spare_oob * SECTORS_PER_PAGE);
+
+				if (((temp_block_addr << 7) + temp) !=
+					cached_page_table.tong[map_idx].ppn)
+				{
+					temp++;
+					continue;
+				}
+
+				temp_l2p[temp].lpn = spare_oob;
+				temp_l2p[temp].ppn = ((temp_block_addr * NAND_PAGES_PER_BLOCK) + temp);
+
+				temp++;
+			} while (temp < NAND_PAGES_PER_BLOCK);
+
+			if (temp == 0)
+			{
+				printf("valid page count mismatch in context and group\n");
+				DBG_ASSERT(0);
+			}
+
+			nand_erase(ftl_context.usrgcblk.pbaddr);
+			ftl_context.usrgcblk.erscnt++;
+			fb_fpofset = 0;
+			fb_vpcnt = 0;
+
+			valid_page_count = 0;
+			temp = 0;
+			do
+			{
+
+				if (temp_l2p[temp].lpn != 0xFFFFFFFF)
+				{
+					map_idx = _load_page_map(temp_l2p[temp].lpn * SECTORS_PER_PAGE);
+
+					nand_write_spare(ftl_context.usrgcblk.pbaddr,
+							fb_fpofset, temp_l2p[temp].lpn);
+
+					statics.compaction_page_8++;
+					statics.compaction_page_count++;
+
+					statics.usr_page_cnt++;
+					statics.usr_gc_page_cnt++;
+
+					cached_page_table.tong[map_idx].ppn =
+						((ftl_context.usrgcblk.pbaddr * NAND_PAGES_PER_BLOCK)
+						+ fb_fpofset);
+
+					fb_fpofset++;
+					fb_vpcnt++;
+
+					pmt_misc.updated[map_idx] = 1;
+
+					valid_page_count++;
+				}
+
+				temp++;
+			} while (temp < NAND_PAGES_PER_BLOCK);
+
+#if (CHECK_VALID_COUNT)
+			// valid_page_count must be less than or equal to min_db_info because of invalid pages were effected by log block
+			if (valid_page_count != temp_pb_valid_page_count)		// if (valid_page_count != min_pb_valid_page_count)
+			{
+				printf("db gc valid page count fail: %d valid page %d min valid\n",
+					valid_page_count, temp_pb_valid_page_count);
+				DBG_ASSERT(0);
+			}
+#endif
+		}
+		else
+		{
+			nand_erase(ftl_context.usrgcblk.pbaddr);
+			ftl_context.usrgcblk.erscnt++;
+			fb_fpofset = 0;
+			fb_vpcnt = 0;
+		}
+
+		int pbblockaddr = ftl_context.uptblk.pbaddr;
+		int pbblockvalidpagecount = ftl_context.uptblk.vpcnt;
+		int pbblockerasecount = ftl_context.uptblk.erscnt;
+
+		ftl_context.uptblk.pbaddr = ftl_context.usrgcblk.pbaddr;
+		ftl_context.uptblk.erscnt = ftl_context.usrgcblk.erscnt;
+		ftl_context.uptblk.fpofset = fb_fpofset;
+		ftl_context.uptblk.vpcnt = fb_vpcnt;
+
+		ftl_context.usrgcblk.pbaddr = temp_block_addr;
+		ftl_context.usrgcblk.erscnt = temp_erase_count;
+
+		// temp_block_addr을 선택하는 시점에서, 메타와 uptblk, usrgcblk를 제외하면 아래를 마킹 처리는 안해도 된다.
+		// 불필요한 store pbt를 발생시키는 코드임
+		_update_min_db_valid_count(temp_block_addr, TERMINATED_VALID_PAGE_COUNT, temp_erase_count, PBT_NO_STORE);
+		//_update_min_db_valid_count(temp_block_addr, TERMINATED_VALID_PAGE_COUNT, temp_erase_count, PBT_STORE);
+		//cached_block_table.tong[cache_pb_idx].pbunit.vpcnt = TERMINATED_VALID_PAGE_COUNT;
+		//cached_block_table.tong[cache_pb_idx].pbunit.erscnt = temp_erase_count;
+		//pbt_misc.updated[cache_pb_idx] = 1;
+
+		int cache_update_pb_idx = _load_data_block_info(pbblockaddr);
+		cached_block_table.tong[cache_update_pb_idx].pbunit.vpcnt = pbblockvalidpagecount;
+		cached_block_table.tong[cache_update_pb_idx].pbunit.erscnt = pbblockerasecount;
+		pbt_misc.updated[cache_update_pb_idx] = 1;
+
+		// GXT and BIT sync
+		_update_min_db_valid_count(pbblockaddr,	pbblockvalidpagecount, pbblockerasecount, PBT_STORE);
+		pbt_misc.updated[cache_update_pb_idx] = 0;
+
+		//_update_min_db_valid_count(pbblockaddr, pbblockvalidpagecount, pbblockerasecount, PBT_NO_STORE);
+
+		
+	}
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+	LOG tmpLog;
+	tmpLog.erscnt = ftl_context.usrgcblk.erscnt;
+	tmpLog.pbaddr = ftl_context.usrgcblk.pbaddr;
+
+	add_diff_logs(0, &ftl_context.uptblk, CONTEXT_LOG_WRITABLE_BLOCKS);
+	add_diff_logs(0, &tmpLog, CONTEXT_FREE_BLOCK_FOR_GC);
+#endif
+
+	statics.num_usr_gc_cnt++;
+
+	_store_ftl_context();
+
+	return 0;
+}
+
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+int _change_pmt_block_by_gc(unsigned int selected_page_group_index, unsigned int selected_page_group_index2)
+#else
+int _change_pmt_block_by_gc(unsigned int selected_page_group_index)
+#endif
+{
+	// all valid pages in min_index block have to be moved to the idle pmt blocks
+	// change idle block to pmt blockpage_loc_map
+	// and pmt block to idle block
+	int temp;
+	int temp_block;
+	int temp_erase_count;
+	int valid_page_count;
+	int min_value;
+	unsigned short* page_loc_map = ftl_context.pmt;
+	METAGCBLK *p_freepmt = &ftl_context.metagcblk;
+	METALOG *p_updatepmt = &ftl_context.uptpmtblk;
+	METALOG *p_pmtblock;
+	int fb_fpofset = 0;
+	int fb_vpcnt = 0;
+
+	METAPBUNIT *p_victim_pmtblock = NULL;
+	METALOG tmp_pmtblk;
+	int isuptpmtblk = 0;
+	int min_pmt_victim_pos = 0;
+
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+	int store_cnt = 0;
+#endif
+
+	memset(&tmp_pmtblk, 0x00, sizeof(METALOG));
+	p_pmtblock = &tmp_pmtblk;
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+	unsigned int temp2 = page_loc_count.page_group_count[selected_page_group_index];
+
+	if (temp2 < 65)
+	{
+		page_loc_map = ftl_context.pmt_log;
+		p_freepmt = &ftl_context.sp_metagcblk;
+		p_updatepmt = &ftl_context.sp_uptpmtblk;
+
+		temp = 0;
+		p_victim_pmtblock = ftl_context.pmtgcvctim.sp_pmtblks;
+		min_value = ftl_context.pmtgcvctim.sp_pmtblks[temp].pbunit.vpcnt;
+		do
+		{
+			if ((ftl_context.pmtgcvctim.sp_pmtblks[temp].pbunit.vpcnt < SLCNAND_PAGES_PER_BLOCK) &&
+				(ftl_context.pmtgcvctim.sp_pmtblks[temp].pbunit.vpcnt < min_value))
+			{
+				min_value = ftl_context.pmtgcvctim.sp_pmtblks[temp].pbunit.vpcnt;
+				p_victim_pmtblock = &ftl_context.pmtgcvctim.sp_pmtblks[temp];
+				min_pmt_victim_pos = temp;
+			}
+
+			temp++;
+		//} while (temp < (PMT_BLOCK_COUNT - 1));
+		} while (temp < PMT_BLOCK_COUNT);
+	}
+	else
+	{
+		temp = 0;
+		p_victim_pmtblock = ftl_context.pmtgcvctim.pmtblks;
+		min_value = ftl_context.pmtgcvctim.pmtblks[temp].pbunit.vpcnt;
+		do
+		{
+			if ((ftl_context.pmtgcvctim.pmtblks[temp].pbunit.vpcnt < SLCNAND_PAGES_PER_BLOCK) &&
+				(ftl_context.pmtgcvctim.pmtblks[temp].pbunit.vpcnt < min_value))
+			{
+				min_value = ftl_context.pmtgcvctim.pmtblks[temp].pbunit.vpcnt;
+				p_victim_pmtblock = &ftl_context.pmtgcvctim.pmtblks[temp];
+				min_pmt_victim_pos = temp;
+			}
+
+			temp++;
+		//} while (temp < (PMT_BLOCK_COUNT - 1));
+		} while (temp < (64 - PMT_BLOCK_COUNT));
+	}
+
+#else
+	// select the pmt block with minimum valid page count between pmtblocks and updatepmtblock
+	temp = 0;
+	p_victim_pmtblock = ftl_context.pmtgcvctim.pmtblks;
+	min_value = ftl_context.pmtgcvctim.pmtblks[temp].pbunit.vpcnt;
+	do
+	{
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+		if ((ftl_context.pmtgcvctim.pmtblks[temp].pbunit.vpcnt < (SLCNAND_PAGES_PER_BLOCK << 1)) &&
+			(ftl_context.pmtgcvctim.pmtblks[temp].pbunit.vpcnt < min_value))
+#else
+		if ((ftl_context.pmtgcvctim.pmtblks[temp].pbunit.vpcnt < SLCNAND_PAGES_PER_BLOCK) &&
+			(ftl_context.pmtgcvctim.pmtblks[temp].pbunit.vpcnt < min_value))
+#endif
+		{
+			min_value = ftl_context.pmtgcvctim.pmtblks[temp].pbunit.vpcnt;
+			p_victim_pmtblock = &ftl_context.pmtgcvctim.pmtblks[temp];
+			min_pmt_victim_pos = temp;
+		}
+
+		temp++;
+	} while (temp < (PMT_BLOCK_COUNT - 1));
+	//} while (temp < (PMT_BLOCK_COUNT));
+#endif
+
+#if (0)
+	if (min_value > 0)
+	{
+		DBG_ASSERT(0);
+	}
+#endif
+
+	if (p_updatepmt->vpcnt <= p_victim_pmtblock->pbunit.vpcnt)
+	{
+		memcpy(p_pmtblock, p_updatepmt, sizeof(METALOG));
+		isuptpmtblk = 1;
+	}
+	else
+	{
+		p_pmtblock->erscnt = p_victim_pmtblock->pbunit.erscnt;
+		p_pmtblock->fpofset = SLCNAND_PAGES_PER_BLOCK;
+		p_pmtblock->pbaddr = p_victim_pmtblock->pbaddr;
+		p_pmtblock->vpcnt = p_victim_pmtblock->pbunit.vpcnt;
+	}
+
+	// erase free block for update pmt block
+	nand_erase(p_freepmt->pbaddr);
+	p_freepmt->erscnt++;
+	fb_fpofset = 0;
+	fb_vpcnt = 0;
+
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+	if (page_loc_map == ftl_context.pmt)
+	{
+		statics.meta_page_map_erase_8++;
+	}
+	else
+	{
+		statics.meta_page_map_erase_4++;
+	}
+#else
+
+#if (FTL_TYPE & FTL_SPFTL_LOGGING)
+	statics.meta_page_map_erase_4++;
+#else
+	statics.meta_page_map_erase_8++;
+#endif
+
+	
+#endif
+
+	statics.num_pmt_gc_cnt++;
+
+	valid_page_count = p_pmtblock->vpcnt;
+
+	int chk_vd_p_cnt = valid_page_count;
+
+	if (valid_page_count > 0)
+	{
+		temp_block = p_pmtblock->pbaddr;
+
+		// all pages have to be moved to free block for pmt block gc
+		temp = 0;
+		do
+		{
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+			if ((selected_page_group_index != temp) && (selected_page_group_index2 != temp) && (temp_block ==
+				((page_loc_map[temp] >> 1) / NAND_PAGES_PER_BLOCK)))
+#else
+			if ((selected_page_group_index != temp) && (temp_block ==
+				(page_loc_map[temp] / NAND_PAGES_PER_BLOCK)))
+
+#endif
+			{
+#if (FTL_TYPE & FTL_SPFTL)
+				// map data copy
+				nand_read_4(temp_block, (page_loc_map[temp] % NAND_PAGES_PER_BLOCK),
+					(unsigned char*)nand_copyback_buffer);
+				nand_program_4(p_freepmt->pbaddr,
+					fb_fpofset, (unsigned char*)nand_copyback_buffer);
+
+				statics.meta_page_valid++;
+				statics.meta_page_count++;
+				statics.meta_page_map_count++;
+#else
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+				if (page_loc_map == ftl_context.pmt)
+				{
+#if (FTL_TYPE & FTL_SPFTL_LOGGING)
+					// map data copy
+					nand_read_4(temp_block, (page_loc_map[temp] % NAND_PAGES_PER_BLOCK),
+						(unsigned char*)nand_copyback_buffer);
+					nand_program_4(p_freepmt->pbaddr,
+						fb_fpofset, (unsigned char*)nand_copyback_buffer);
+
+					statics.meta_page_map_count_8++;
+#else
+					// map data copy
+					nand_read(temp_block, (page_loc_map[temp] % NAND_PAGES_PER_BLOCK),
+						(unsigned char*)nand_copyback_buffer);
+					nand_program(p_freepmt->pbaddr,
+						fb_fpofset, (unsigned char*)nand_copyback_buffer);
+
+					statics.meta_page_map_count_8++;
+#endif
+
+					
+				}
+				else
+				{
+					// map data copy
+					nand_read_4(temp_block, (page_loc_map[temp] % NAND_PAGES_PER_BLOCK),
+						(unsigned char*)nand_copyback_buffer);
+					nand_program_4(p_freepmt->pbaddr,
+						fb_fpofset, (unsigned char*)nand_copyback_buffer);
+
+					statics.meta_page_valid_4++;
+					statics.meta_page_map_count_4++;
+				}
+
+				statics.meta_page_count++;
+				statics.meta_page_valid++;
+				statics.meta_page_map_count++;
+#else
+
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+				// map data copy
+				nand_read(temp_block, ((page_loc_map[temp] >> 1) % NAND_PAGES_PER_BLOCK),
+					(unsigned char*)nand_copyback_buffer);
+
+				if (page_loc_map[temp] & 0x01)
+				{
+					memcpy((temp_buffer_ext + (store_cnt * 4096)), (nand_copyback_buffer + 4096), 4096);
+				}
+				else
+				{
+					memcpy((temp_buffer_ext + (store_cnt * 4096)), nand_copyback_buffer, 4096);
+				}
+
+				// map change
+				page_loc_map[temp] =
+					(unsigned short)(((p_freepmt->pbaddr * NAND_PAGES_PER_BLOCK) << 1) +
+					(fb_fpofset << 1) + store_cnt);
+
+				store_cnt++;
+
+				if (store_cnt == 2)
+				{
+					nand_program(p_freepmt->pbaddr,
+						fb_fpofset, (unsigned char*)temp_buffer_ext);
+
+					store_cnt = 0;
+					fb_fpofset++;
+					statics.meta_page_map_count++;
+				}
+
+				statics.meta_page_valid++;
+				statics.meta_page_valid++;
+
+				fb_vpcnt++;
+				
+#else
+				// map data copy
+				nand_read(temp_block, (page_loc_map[temp] % NAND_PAGES_PER_BLOCK),
+					(unsigned char*)nand_copyback_buffer);
+				nand_program(p_freepmt->pbaddr,
+					fb_fpofset, (unsigned char*)nand_copyback_buffer);
+
+				statics.meta_page_valid++;
+				statics.meta_page_count++;
+				statics.meta_page_map_count++;
+#endif
+
+				
+#endif
+#endif
+
+#if (!(FTL_TYPE & FTL_BASELINE_EXT))
+				// map change
+				page_loc_map[temp] =
+					(unsigned short)((p_freepmt->pbaddr * NAND_PAGES_PER_BLOCK) +
+							fb_fpofset);
+
+				fb_fpofset++;
+				fb_vpcnt++;
+#endif
+				
+				valid_page_count--;
+			}
+
+			temp++;
+		} while ((temp < PMT_MAX_VALID_PAGE_COUNT) && (valid_page_count > 0));
+
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+		if (store_cnt == 1)
+		{
+			nand_program(p_freepmt->pbaddr,
+				fb_fpofset, (unsigned char*)temp_buffer_ext);
+
+			store_cnt = 0;
+			fb_fpofset++;
+			statics.meta_page_map_count++;
+		}
+#endif
+
+	}
+
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+	if (chk_vd_p_cnt != fb_vpcnt)
+	{
+		DBG_ASSERT(0);
+	}
+#endif
+
+	// switch block,
+	temp_block = p_freepmt->pbaddr;
+	temp_erase_count = p_freepmt->erscnt;
+
+	p_freepmt->pbaddr = p_pmtblock->pbaddr;
+	p_freepmt->erscnt = p_pmtblock->erscnt;
+
+	if (isuptpmtblk == 1)
+	{
+		p_pmtblock->pbaddr = temp_block;
+		p_pmtblock->erscnt = temp_erase_count;
+		p_pmtblock->vpcnt = fb_vpcnt;
+		p_pmtblock->fpofset = fb_fpofset;
+
+		memcpy(p_updatepmt, p_pmtblock, sizeof(METALOG));
+	}
+	else
+	{
+		p_pmtblock->pbaddr = p_updatepmt->pbaddr;
+		p_pmtblock->erscnt = p_updatepmt->erscnt;
+		p_pmtblock->vpcnt = p_updatepmt->vpcnt;
+
+		p_updatepmt->pbaddr = temp_block;
+		p_updatepmt->erscnt = temp_erase_count;
+		p_updatepmt->vpcnt = fb_vpcnt;
+		p_updatepmt->fpofset = fb_fpofset;
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+		if (page_loc_map == ftl_context.pmt)
+		{
+			p_victim_pmtblock = &ftl_context.pmtgcvctim.pmtblks[min_pmt_victim_pos];
+			p_victim_pmtblock->pbunit.erscnt = p_pmtblock->erscnt;
+			p_victim_pmtblock->pbaddr = p_pmtblock->pbaddr;
+			p_victim_pmtblock->pbunit.vpcnt = p_pmtblock->vpcnt;
+		}
+		else
+		{
+			p_victim_pmtblock = &ftl_context.pmtgcvctim.sp_pmtblks[min_pmt_victim_pos];
+			p_victim_pmtblock->pbunit.erscnt = p_pmtblock->erscnt;
+			p_victim_pmtblock->pbaddr = p_pmtblock->pbaddr;
+			p_victim_pmtblock->pbunit.vpcnt = p_pmtblock->vpcnt;
+		}
+#else
+		p_victim_pmtblock = &ftl_context.pmtgcvctim.pmtblks[min_pmt_victim_pos];
+		p_victim_pmtblock->pbunit.erscnt = p_pmtblock->erscnt;
+		p_victim_pmtblock->pbaddr = p_pmtblock->pbaddr;
+		p_victim_pmtblock->pbunit.vpcnt = p_pmtblock->vpcnt;
+#endif
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+		LOG tmpLogV;
+		tmpLogV.erscnt = p_pmtblock->erscnt;
+		tmpLogV.pbaddr = p_victim_pmtblock->pbaddr;
+		tmpLogV.vpcnt = p_victim_pmtblock->pbunit.vpcnt;
+		
+		add_diff_logs(0, &tmpLogV, CONTEXT_BLOCK_VICTIM);
+#endif
+	}
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+	LOG tmpLog;
+	tmpLog.erscnt = p_freepmt->erscnt;
+	tmpLog.pbaddr = p_freepmt->pbaddr;
+
+	add_diff_logs(0, &tmpLog, CONTEXT_FREE_METABLOCK_FOR_GC);
+	add_diff_logs(0, (LOG *)p_pmtblock, CONTEXT_LOG_WRITABLE_BLOCKS);
+	add_diff_logs(0, (LOG *)p_updatepmt, CONTEXT_LOG_WRITABLE_BLOCKS);
+#endif
+
+	return 0;
+}
+
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+int __store_page_map(unsigned int selected_page_group_index, unsigned int selected_page_group_index2)
+#else
+int __store_page_map(unsigned int selected_page_group_index)
+#endif
+{
+	// get victim pmt block with minimal erase count or minimal valid page count
+	// update page group location of min lpn group
+	// store to pmttemp
+	// store context
+	int temp;
+	unsigned int previous_block;
+	unsigned int previous_pmt_block_index;
+	int block_attribute = 0;
+	unsigned short* page_loc_map = ftl_context.pmt;
+	METALOG* p_updatepmtblock = &ftl_context.uptpmtblk;
+	METAPBUNIT* p_pmtblock = ftl_context.pmtgcvctim.pmtblks;
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+	unsigned temp2 = page_loc_count.page_group_count[selected_page_group_index];
+
+	if (temp2 < 65)
+	{
+		page_loc_map = ftl_context.pmt_log;
+		p_updatepmtblock = &ftl_context.sp_uptpmtblk;
+		p_pmtblock = ftl_context.pmtgcvctim.sp_pmtblks;
+	}
+#endif
+
+	// get current page group ppn
+	previous_block = (page_loc_map[selected_page_group_index] / NAND_PAGES_PER_BLOCK);
+
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+	previous_block = (previous_block >> 1);
+#endif
+
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+	if (p_updatepmtblock == &ftl_context.sp_uptpmtblk)
+	{
+		temp = 0;
+		previous_pmt_block_index = 0xFFFFFFFF;
+		do
+		{
+			if (p_pmtblock[temp].pbaddr == previous_block)
+			{
+				previous_pmt_block_index = temp;
+				break;
+			}
+			temp++;
+		} while (temp < PMT_BLOCK_COUNT);
+
+		// if previous map exists, decrease previous valid page count
+		if (previous_pmt_block_index < PMT_BLOCK_COUNT)
+		{
+			p_pmtblock[previous_pmt_block_index].pbunit.vpcnt--;
+		}
+		else if (previous_block == p_updatepmtblock->pbaddr)
+		{
+			p_updatepmtblock->vpcnt--;
+		}
+	}
+	else
+	{
+		temp = 0;
+		previous_pmt_block_index = 0xFFFFFFFF;
+		do
+		{
+			if (p_pmtblock[temp].pbaddr == previous_block)
+			{
+				previous_pmt_block_index = temp;
+				break;
+			}
+			temp++;
+		} while (temp < (64 - PMT_BLOCK_COUNT));
+
+		// if previous map exists, decrease previous valid page count
+		if (previous_pmt_block_index < (64 - PMT_BLOCK_COUNT))
+		{
+			p_pmtblock[previous_pmt_block_index].pbunit.vpcnt--;
+		}
+		else if (previous_block == p_updatepmtblock->pbaddr)
+		{
+			p_updatepmtblock->vpcnt--;
+		}
+	}
+#else
+	temp = 0;
+	previous_pmt_block_index = 0xFFFFFFFF;
+	do
+	{
+		if (p_pmtblock[temp].pbaddr == previous_block)
+		{
+			previous_pmt_block_index = temp;
+			break;
+		}
+		temp++;
+	} while (temp < PMT_BLOCK_COUNT);
+
+	// if previous map exists, decrease previous valid page count
+	if (previous_pmt_block_index < PMT_BLOCK_COUNT)
+	{
+		p_pmtblock[previous_pmt_block_index].pbunit.vpcnt--;
+	}
+	else if (previous_block == p_updatepmtblock->pbaddr)
+	{
+		p_updatepmtblock->vpcnt--;
+	}
+#endif
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+	if (0xFFFFFFFF != selected_page_group_index2)
+	{
+		previous_block = (page_loc_map[selected_page_group_index2] / NAND_PAGES_PER_BLOCK);
+		previous_block = (previous_block >> 1);
+
+		temp = 0;
+		previous_pmt_block_index = 0xFFFFFFFF;
+		do
+		{
+			if (p_pmtblock[temp].pbaddr == previous_block)
+			{
+				previous_pmt_block_index = temp;
+				break;
+			}
+			temp++;
+		} while (temp < PMT_BLOCK_COUNT);
+
+		// if previous map exists, decrease previous valid page count
+		if (previous_pmt_block_index < PMT_BLOCK_COUNT)
+		{
+			p_pmtblock[previous_pmt_block_index].pbunit.vpcnt--;
+		}
+		else if (previous_block == p_updatepmtblock->pbaddr)
+		{
+			p_updatepmtblock->vpcnt--;
+		}
+
+	}
+#endif
+
+
+	if (p_updatepmtblock->fpofset >= SLCNAND_PAGES_PER_BLOCK)
+	{
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+		_change_pmt_block_by_gc(selected_page_group_index, selected_page_group_index2);
+#else
+		_change_pmt_block_by_gc(selected_page_group_index);
+#endif
+		block_attribute = 1;
+	}
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+	if (temp2 >= 64)
+	{
+		page_loc_count.page_group_count[selected_page_group_index] = 1;
+	}
+	else
+	{
+		page_loc_count.page_group_count[selected_page_group_index]++;
+	}
+#endif
+
+#if (FTL_TYPE & FTL_SPFTL)
+	// store pmt
+	nand_program_4(p_updatepmtblock->pbaddr, p_updatepmtblock->fpofset,
+		(unsigned char*)temp_buffer);
+
+	statics.meta_page_count++;
+	statics.meta_page_map_count++;
+#else
+
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+	if (page_loc_map == ftl_context.pmt)
+	{
+
+#if (FTL_TYPE & FTL_SPFTL_LOGGING)
+		// store pmt
+		nand_program_4(p_updatepmtblock->pbaddr,
+			p_updatepmtblock->fpofset, (unsigned char*)temp_buffer);
+#else
+		// store pmt
+		nand_program(p_updatepmtblock->pbaddr,
+			p_updatepmtblock->fpofset, (unsigned char*)temp_buffer);
+#endif
+		ftl_context.pmt_log[selected_page_group_index] = 0xFFFF;
+
+		statics.meta_page_map_count_8++;
+	}
+	else
+	{
+		// store pmt
+		nand_program_4(p_updatepmtblock->pbaddr,
+			p_updatepmtblock->fpofset,(unsigned char*)temp_4kb_buffer);
+
+		statics.meta_page_map_count_4++;
+	}
+
+	statics.meta_page_count++;
+	statics.meta_page_map_count++;
+#else
+	// store pmt
+	nand_program(p_updatepmtblock->pbaddr, p_updatepmtblock->fpofset,
+		(unsigned char*)temp_buffer);
+
+	statics.meta_page_count++;
+	statics.meta_page_map_count++;
+#endif
+
+#endif
+
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+	// map change
+	page_loc_map[selected_page_group_index] =
+		(((p_updatepmtblock->pbaddr * NAND_PAGES_PER_BLOCK) << 1) +
+		(p_updatepmtblock->fpofset << 1));
+
+	if (selected_page_group_index2 != 0xFFFFFFFF)
+	{
+		page_loc_map[selected_page_group_index2] =
+			(((p_updatepmtblock->pbaddr * NAND_PAGES_PER_BLOCK) << 1) +
+			((p_updatepmtblock->fpofset << 1) + 1));
+		p_updatepmtblock->vpcnt++;
+	}
+
+	p_updatepmtblock->fpofset++;
+	p_updatepmtblock->vpcnt++;
+
+	if ((p_updatepmtblock->fpofset > SLCNAND_PAGES_PER_BLOCK) ||
+		(p_updatepmtblock->vpcnt > (SLCNAND_PAGES_PER_BLOCK << 1)))
+	{
+		DBG_ASSERT(0);
+	}
+
+#else
+	// map change
+	page_loc_map[selected_page_group_index] =
+		((p_updatepmtblock->pbaddr * NAND_PAGES_PER_BLOCK) +
+		p_updatepmtblock->fpofset);
+
+	p_updatepmtblock->fpofset++;
+	p_updatepmtblock->vpcnt++;
+
+	if ((p_updatepmtblock->fpofset > SLCNAND_PAGES_PER_BLOCK) ||
+		(p_updatepmtblock->vpcnt > SLCNAND_PAGES_PER_BLOCK))
+	{
+		DBG_ASSERT(0);
+	}
+
+#endif
+
+
+	// if block's attribute is changed
+	// ftl_context have to be stored to ftl context block
+	if (block_attribute > 0)
+	{
+		// store ftl context
+		_store_ftl_context();
+	}
+
+	return 0;
+}
+
+int _load_page_map(unsigned int rcv_sector_addr)
+{
+	unsigned int ppn_group;
+	unsigned int temp;
+	int cache_pmt_index = IDX_EMPTY;
+	int victim_page_group_index;
+	USRLPNDESC *lpn_loc = (USRLPNDESC *)temp_buffer;
+	int rcv_page_index = (rcv_sector_addr / SECTORS_PER_PAGE);
+	int rcv_page_group_index = (rcv_page_index / LP_COUNT_PER_PMT_GROUP);
+	int rcv_page_group_mod_index = (rcv_page_index % LP_COUNT_PER_PMT_GROUP);
+
+#if (PMT_STORE_DISTANCE)
+	int victim_lpn_stored_cnt = 0;
+	int lpn_grouped[4] = { 0, 0, 0, 0 };
+#endif
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+	DIFFCACHEPMT* diffcachepmt;
+	unsigned int diffloc;
+	unsigned int j_temp2;
+#endif
+
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+	int victim_page_group_index2 = 0xFFFFFFFF;
+#endif
+
+	if (rcv_page_group_index > (sizeof(ftl_context.pmt) / sizeof(unsigned short)))
+	{
+		printf("rcv_page over %d\n",rcv_page_group_index);
+		DBG_ASSERT(0);
+	}
+
+	// if lpn exists in cache page table
+	temp = 0;
+	do
+	{
+		if (cached_page_table.tong[temp].lpn == (rcv_sector_addr / SECTORS_PER_PAGE))
+		{
+			return temp;
+		}
+
+		temp++;
+	} while (temp < L2P_MAP_CACHE_MAX_COUNT);
+
+	cache_pmt_index = 0;
+	temp = 0;
+	do
+	{
+		if (pmt_misc.updated[temp] == 0)
+		{
+			cache_pmt_index = temp;
+			break;
+		}
+		temp++;
+	} while (temp < L2P_MAP_CACHE_MAX_COUNT);
+
+	if (cache_pmt_index == IDX_EMPTY)
+	{
+		int updated;
+		int loaded_group;
+
+		int num_of_try = 1;
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+		int buf_addr_start = 0;
+		num_of_try = 2;
+#endif
+		cache_pmt_index = PMT_CACHE_VICTIM_DEFAULT_IDX;
+
+		do
+		{
+			// search all lpns which are in same group with min index lpn, update & store meta
+			victim_page_group_index =
+				(cached_page_table.tong[cache_pmt_index].lpn / LP_COUNT_PER_PMT_GROUP);
+
+			// apply updated lpn
+			loaded_group = 0;
+			updated = 0;
+			temp = 0;
+			do
+			{
+				if ((cached_page_table.tong[temp].lpn / LP_COUNT_PER_PMT_GROUP) == victim_page_group_index)
+				{
+					if (pmt_misc.updated[temp] != 0)
+					{
+						if (loaded_group == 0)
+						{
+							// get victim page group ppn
+							ppn_group = ftl_context.pmt[victim_page_group_index];
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+							diffcachepmt = (DIFFCACHEPMT *)temp_4kb_buffer;
+
+							memset(diffcachepmt, 0xFF, sizeof(DIFFCACHEPMT));
+							diffcachepmt->page_map_count = 0;
+#endif
+
+							// nand read
+							if (ppn_group < MAX_META_PM_ADDR)			// total page 2097152 = 16GB/8KB
+							{
+
+#if (FTL_TYPE & FTL_SPFTL)
+								nand_read_4((ppn_group / NAND_PAGES_PER_BLOCK),
+									(ppn_group%NAND_PAGES_PER_BLOCK), temp_buffer);
+#else
+
+#if (FTL_TYPE & FTL_SPFTL_LOGGING)
+								nand_read_4((ppn_group / NAND_PAGES_PER_BLOCK),
+									(ppn_group%NAND_PAGES_PER_BLOCK), temp_buffer);
+#else
+
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+								nand_read(((ppn_group >> 1) / NAND_PAGES_PER_BLOCK),
+									((ppn_group >> 1) % NAND_PAGES_PER_BLOCK), temp_buffer_ext);
+
+								if (ppn_group & 0x1)
+								{
+									memcpy((temp_buffer + buf_addr_start), (temp_buffer_ext + 4096), 4096);
+								}
+								else
+								{
+									memcpy((temp_buffer + buf_addr_start), temp_buffer_ext, 4096);
+								}
+
+#else
+								nand_read((ppn_group / NAND_PAGES_PER_BLOCK),
+									(ppn_group%NAND_PAGES_PER_BLOCK), temp_buffer);
+#endif
+
+#endif
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+								diffcachepmt = (DIFFCACHEPMT *)temp_4kb_buffer;
+
+								diffloc = ftl_context.pmt_log[victim_page_group_index];
+
+								if (diffloc != 0xFFFF)
+								{
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+									Latency4KBforPMT = 1;
+#endif
+									nand_read_4((diffloc / NAND_PAGES_PER_BLOCK), (diffloc % NAND_PAGES_PER_BLOCK),
+										(unsigned char*)temp_4kb_buffer);
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+									Latency4KBforPMT = 0;
+#endif
+									if (diffcachepmt->page_map_count == 0)
+									{
+										DBG_ASSERT(0);
+									}
+
+									j_temp2 = 0;
+									do
+									{
+										lpn_loc[diffcachepmt->tong[j_temp2].m_lpn].pbaddr
+											= diffcachepmt->tong[j_temp2].ppn.pbaddr;
+
+										lpn_loc[diffcachepmt->tong[j_temp2].m_lpn].pgofset
+											= diffcachepmt->tong[j_temp2].ppn.pgofset;
+
+										j_temp2++;
+									} while (j_temp2 < diffcachepmt->page_map_count);
+
+								}
+#endif
+
+#endif
+
+							}
+							else
+							{
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+								memset((temp_buffer+buf_addr_start), 0xFF, 4096);
+#else
+								memset(temp_buffer, 0xFF, sizeof(temp_buffer));
+#endif
+							}
+
+							loaded_group = 1;
+						}
+
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+						lpn_loc = (USRLPNDESC *)(temp_buffer + buf_addr_start);
+#endif
+
+						lpn_loc
+							[(cached_page_table.tong[temp].lpn %
+							LP_COUNT_PER_PMT_GROUP)].pbaddr =
+							(unsigned short)
+							(cached_page_table.tong[temp].ppn / NAND_PAGES_PER_BLOCK);
+
+						lpn_loc
+							[(cached_page_table.tong[temp].lpn %
+							LP_COUNT_PER_PMT_GROUP)].pgofset =
+							(unsigned char)
+							(cached_page_table.tong[temp].ppn % NAND_PAGES_PER_BLOCK);
+
+#if (PMT_STORE_DISTANCE)
+						victim_lpn_stored_cnt++;
+						// 682 (LP_COUNT_PER_PMT_GROUP/4)
+						int grouped_index_log = (cached_page_table.tong[temp].lpn %LP_COUNT_PER_PMT_GROUP);
+						if (grouped_index_log < 682)
+						{
+							lpn_grouped[0]++;
+						}
+						else if (grouped_index_log < (682*2))
+						{
+							lpn_grouped[1]++;
+						}
+						else if (grouped_index_log < (682*3))
+						{
+							lpn_grouped[2]++;
+						}
+						else
+						{
+							lpn_grouped[3]++;
+						}
+#endif
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+						if (diffcachepmt->page_map_count < MAX_PMT_LOG_UPT_CNT)
+						{
+							diffcachepmt = (DIFFCACHEPMT *)temp_4kb_buffer;
+							diffcachepmt->tong[diffcachepmt->page_map_count].m_lpn = 
+								(cached_page_table.tong[temp].lpn % LP_COUNT_PER_PMT_GROUP);
+							diffcachepmt->tong[diffcachepmt->page_map_count].ppn.pbaddr = 
+								lpn_loc[(cached_page_table.tong[temp].lpn % LP_COUNT_PER_PMT_GROUP)].pbaddr;
+							diffcachepmt->tong[diffcachepmt->page_map_count].ppn.pgofset =
+								lpn_loc[(cached_page_table.tong[temp].lpn % LP_COUNT_PER_PMT_GROUP)].pgofset;
+
+							diffcachepmt->page_map_count++;
+						}
+
+						if (diffcachepmt->page_map_count == MAX_PMT_LOG_UPT_CNT)
+						{
+							page_loc_count.page_group_count[victim_page_group_index] = 65;
+
+#if (PMTB_RATIO_UNLIMIT)
+							page_loc_count.page_group_count[victim_page_group_index] = 0;
+#endif
+						}
+#endif
+
+						updated = 1;
+						pmt_misc.updated[temp] = 0;
+					}
+				}
+
+				temp++;
+			} while (temp < L2P_MAP_CACHE_MAX_COUNT);
+
+			num_of_try--;
+			if (num_of_try > 0)
+			{
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+				buf_addr_start = 4096;
+				victim_page_group_index2 = 0xFFFFFFFF;
+
+				temp = 0;
+				do
+				{
+					if (pmt_misc.updated[temp] == 1)
+					{
+						cache_pmt_index = temp;
+						victim_page_group_index2 = victim_page_group_index;
+						break;
+					}
+					temp++;
+				} while (temp < L2P_MAP_CACHE_MAX_COUNT);
+
+				if (victim_page_group_index2 == 0xFFFFFFFF)
+				{
+					num_of_try = 0;
+					memset((temp_buffer + buf_addr_start), 0xFF, 4096);
+				}
+#endif
+			}
+
+		} while (num_of_try > 0);
+
+		// store metadata
+		if (updated != 0)
+		{
+#if (PMT_STORE_DISTANCE)
+			{
+				extern STATISTICS statics;
+
+				if (statics.aged == 1)
+				{
+					//printf("%d\t%d\t%d\t%d\n", lpn_grouped[0], lpn_grouped[1], lpn_grouped[2], lpn_grouped[3]);
+
+					if (lpn_grouped[0] > 0 && lpn_grouped[1] == 0 && lpn_grouped[2] == 0 && lpn_grouped[3] == 0)
+					{
+						statics.lpn_check_group[0]++;
+					}
+					else if (lpn_grouped[0] == 0 && lpn_grouped[1] > 0 && lpn_grouped[2] == 0 && lpn_grouped[3] == 0)
+					{
+						statics.lpn_check_group[0]++;
+					}
+					else if (lpn_grouped[0] == 0 && lpn_grouped[1] == 0 && lpn_grouped[2] > 0 && lpn_grouped[3] == 0)
+					{
+						statics.lpn_check_group[0]++;
+					}
+					else if (lpn_grouped[0] == 0 && lpn_grouped[1] == 0 && lpn_grouped[2] == 0 && lpn_grouped[3] > 0)
+					{
+						statics.lpn_check_group[0]++;
+					}
+					else if (lpn_grouped[0] > 0 && lpn_grouped[1] > 0 && lpn_grouped[2] == 0 && lpn_grouped[3] == 0)
+					{
+						statics.lpn_check_group[1]++;
+					}
+					else if (lpn_grouped[0] == 0 && lpn_grouped[1] == 0 && lpn_grouped[2] > 0 && lpn_grouped[3] > 0)
+					{
+						statics.lpn_check_group[1]++;
+					}
+					else
+					{
+						statics.lpn_check_group[2]++;
+					}
+				}
+			}
+
+#endif
+
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+			// store temp_page_buffer to page pmt block
+			if (victim_page_group_index2 != 0xFFFFFFFF)
+			{
+				__store_page_map(victim_page_group_index2, victim_page_group_index);
+			}
+			else
+			{
+				__store_page_map(victim_page_group_index, victim_page_group_index2);
+			}
+#else
+			__store_page_map(victim_page_group_index);
+#endif
+
+		}
+
+	}
+
+	// get in-param page group ppn
+	ppn_group = ftl_context.pmt[rcv_page_group_index];
+
+	cached_page_table.tong[cache_pmt_index].lpn = rcv_page_index;
+
+	// nand read
+	if (ppn_group < MAX_META_PM_ADDR)			// total page 2097152 = 16GB/8KB
+	{
+
+#if (FTL_TYPE & FTL_SPFTL)
+		nand_read_4((ppn_group / NAND_PAGES_PER_BLOCK),
+			(ppn_group%NAND_PAGES_PER_BLOCK), temp_buffer);
+
+#else
+
+#if (FTL_TYPE & FTL_SPFTL_LOGGING)
+		nand_read_4((ppn_group / NAND_PAGES_PER_BLOCK),
+			(ppn_group%NAND_PAGES_PER_BLOCK), temp_buffer);
+#else
+
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+		
+		nand_read(((ppn_group >> 1) / NAND_PAGES_PER_BLOCK),
+			((ppn_group >> 1) % NAND_PAGES_PER_BLOCK), temp_buffer_ext);
+
+		if (ppn_group & 0x1)
+		{
+			memcpy(temp_buffer, (temp_buffer_ext + 4096), 4096);
+		}
+		else
+		{
+			memcpy(temp_buffer, temp_buffer_ext, 4096);
+		}
+
+		lpn_loc = (USRLPNDESC *)temp_buffer;
+#else
+		nand_read((ppn_group / NAND_PAGES_PER_BLOCK),
+			(ppn_group%NAND_PAGES_PER_BLOCK), temp_buffer);
+#endif
+
+#endif
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+		diffcachepmt = (DIFFCACHEPMT *)temp_4kb_buffer;
+
+		diffloc = ftl_context.pmt_log[rcv_page_group_index];
+		if (diffloc != 0xFFFF)
+		{
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+			Latency4KBforPMT = 1;
+#endif
+			nand_read_4((diffloc / NAND_PAGES_PER_BLOCK), (diffloc % NAND_PAGES_PER_BLOCK),
+				(unsigned char*)temp_4kb_buffer);
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+			Latency4KBforPMT = 0;
+#endif
+			if (diffcachepmt->page_map_count == 0)
+			{
+				DBG_ASSERT(0);
+			}
+
+
+			j_temp2 = 0;
+			do
+			{
+				lpn_loc[diffcachepmt->tong[j_temp2].m_lpn].pbaddr =
+					diffcachepmt->tong[j_temp2].ppn.pbaddr;
+
+				lpn_loc[diffcachepmt->tong[j_temp2].m_lpn].pgofset =
+					diffcachepmt->tong[j_temp2].ppn.pgofset;
+
+				j_temp2++;
+			} while (j_temp2 < diffcachepmt->page_map_count);
+
+		}
+		
+#endif
+
+#endif
+		cached_page_table.tong[cache_pmt_index].ppn =
+				((lpn_loc[rcv_page_group_mod_index].pbaddr *
+				NAND_PAGES_PER_BLOCK) +
+				lpn_loc[rcv_page_group_mod_index].pgofset);
+	}
+	else
+	{
+		cached_page_table.tong[cache_pmt_index].ppn = 0xFFFFFFFF;
+	}
+
+	return cache_pmt_index;
+}
+
+// cache는 128 page 단위로 flush pmt하므로,
+// 2730개가 하나의 pmt group이므로, align이 맞지 않아 group이 넘어갈 경우 pmt를 한번 더 적을 수 있게 된다.
+// 1GB는 128 page씩 쓰면 1MB 씩 쓰므로, pmt는 1023번(마지막 flush제외) 쓰게 되고,
+// group은 47번 변하게 되므로(align때문에 변하면 한번 더 pmt를 적으므로) 1023 + 47 = 1070번 pmt를 쓰게 된다.
+int _flush_lpn(void)
+{
+	int ret = 0;
+	int cnt;
+	int temp;
+	int victim_page_group_index;
+	int in_temp;
+	unsigned int loaded_group;
+	unsigned int ppn_group;
+	USRLPNDESC *lpn_loc = (USRLPNDESC *)temp_buffer;
+
+#if (PMT_STORE_DISTANCE)
+	int victim_lpn_stored_cnt = 0;
+	int lpn_grouped[4] = { 0, 0, 0, 0 };
+	//int lpn_check_group[4] = { 0, 0, 0, 0 }; // 2kb, 4kb, 8kb ; 3 case
+	int lpn_g_idx = 0;
+#endif
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+	DIFFCACHEPMT* diffcachepmt;
+	unsigned int diffloc;
+	unsigned int j_temp2;
+#endif
+
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+	int victim_page_group_index2 = 0xFFFFFFFF;
+	int buf_addr_start = 0;
+	int store_meta = 0;
+	int read_count = 0;
+#endif
+
+	temp = 0;
+	cnt = 0;
+	do
+	{
+		if (pmt_misc.updated[temp] > 0)
+		{
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+			store_meta = 1;
+#endif
+			victim_page_group_index = (cached_page_table.tong[temp].lpn / LP_COUNT_PER_PMT_GROUP);
+
+			//printf("group=%d\n",victim_page_group_index);
+
+#if (PMT_STORE_DISTANCE)
+			victim_lpn_stored_cnt = 0;
+			lpn_g_idx = 0;
+			do
+			{
+				lpn_grouped[lpn_g_idx] = 0;
+				lpn_g_idx++;
+			} while (lpn_g_idx < 4);
+#endif
+
+
+			in_temp = 0;
+			loaded_group = 0;
+			do
+			{
+				if (((cached_page_table.tong[in_temp].lpn / LP_COUNT_PER_PMT_GROUP) == victim_page_group_index)
+					&& (pmt_misc.updated[in_temp] > 0))
+				{
+					if (loaded_group == 0)
+					{
+						// get victim page group ppn
+						ppn_group = ftl_context.pmt[victim_page_group_index];
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+						diffcachepmt = (DIFFCACHEPMT *)temp_4kb_buffer;
+
+						memset(diffcachepmt, 0xFF, sizeof(DIFFCACHEPMT));
+						diffcachepmt->page_map_count = 0;
+#endif
+
+						// nand read
+						if (ppn_group < MAX_META_PM_ADDR)			// total page 2097152 = 16GB/8KB
+						{
+
+#if (FTL_TYPE & FTL_SPFTL)
+							nand_read_4((ppn_group / NAND_PAGES_PER_BLOCK),
+								(ppn_group%NAND_PAGES_PER_BLOCK), temp_buffer);
+
+#else
+
+#if (FTL_TYPE & FTL_SPFTL_LOGGING)
+							nand_read_4((ppn_group / NAND_PAGES_PER_BLOCK),
+								(ppn_group%NAND_PAGES_PER_BLOCK), temp_buffer);
+#else
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+
+							nand_read(((ppn_group >> 1) / NAND_PAGES_PER_BLOCK),
+								((ppn_group >> 1) % NAND_PAGES_PER_BLOCK), temp_buffer_ext);
+
+							if (ppn_group & 0x01)
+							{
+								memcpy((temp_buffer + buf_addr_start), (temp_buffer_ext + 4096), 4096);
+							}
+							else
+							{
+								memcpy((temp_buffer + buf_addr_start), temp_buffer_ext, 4096);
+							}
+
+							lpn_loc = (USRLPNDESC *)(temp_buffer + buf_addr_start);
+							
+							if (buf_addr_start == 0)
+							{
+								buf_addr_start = 4096;
+							}
+							else
+							{
+								buf_addr_start = 0;
+							}
+
+#else
+							nand_read((ppn_group / NAND_PAGES_PER_BLOCK),
+								(ppn_group%NAND_PAGES_PER_BLOCK), temp_buffer);
+#endif
+#endif
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+							diffcachepmt = (DIFFCACHEPMT *)temp_4kb_buffer;
+
+							diffloc = ftl_context.pmt_log[victim_page_group_index];
+
+							if (diffloc != 0xFFFF)
+							{
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+								Latency4KBforPMT = 1;
+#endif
+								nand_read_4((diffloc / NAND_PAGES_PER_BLOCK), (diffloc % NAND_PAGES_PER_BLOCK),
+									(unsigned char*)temp_4kb_buffer);
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+								Latency4KBforPMT = 0;
+#endif
+								if (diffcachepmt->page_map_count == 0)
+								{
+									DBG_ASSERT(0);
+								}
+
+								j_temp2 = 0;
+								do
+								{
+									lpn_loc[diffcachepmt->tong[j_temp2].m_lpn].pbaddr =
+										diffcachepmt->tong[j_temp2].ppn.pbaddr;
+
+									lpn_loc[diffcachepmt->tong[j_temp2].m_lpn].pgofset =
+										diffcachepmt->tong[j_temp2].ppn.pgofset;
+
+									j_temp2++;
+								} while (j_temp2 < diffcachepmt->page_map_count);
+
+							}
+#endif
+
+#endif
+						}
+						else
+						{
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+							memset((temp_buffer + buf_addr_start), 0xFF, 4096);
+
+							lpn_loc = (USRLPNDESC *)(temp_buffer + buf_addr_start);
+
+							if (buf_addr_start == 0)
+							{
+								buf_addr_start = 4096;
+							}
+							else
+							{
+								buf_addr_start = 0;
+							}
+#else
+							memset(temp_buffer, 0xFF, sizeof(temp_buffer));
+#endif
+						}
+
+						loaded_group = 1;
+					}
+
+					lpn_loc[(cached_page_table.tong[in_temp].lpn %
+							LP_COUNT_PER_PMT_GROUP)].pbaddr
+						= (unsigned short)(cached_page_table.tong[in_temp].ppn / NAND_PAGES_PER_BLOCK);
+
+					lpn_loc[(cached_page_table.tong[in_temp].lpn %
+							LP_COUNT_PER_PMT_GROUP)].pgofset
+						= (unsigned char)(cached_page_table.tong[in_temp].ppn % NAND_PAGES_PER_BLOCK);
+
+#if (PMT_STORE_DISTANCE)
+					victim_lpn_stored_cnt++;
+					// 682 (LP_COUNT_PER_PMT_GROUP/4)
+					int grouped_index_log = (cached_page_table.tong[in_temp].lpn %LP_COUNT_PER_PMT_GROUP);
+					if (grouped_index_log < 682)
+					{
+						lpn_grouped[0]++;
+					}
+					else if (grouped_index_log < (682*2))
+					{
+						lpn_grouped[1]++;
+					}
+					else if (grouped_index_log < (682*3))
+					{
+						lpn_grouped[2]++;
+					}
+					else
+					{
+						lpn_grouped[3]++;
+					}
+#endif
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+					if (diffcachepmt->page_map_count < MAX_PMT_LOG_UPT_CNT)
+					{
+						diffcachepmt = (DIFFCACHEPMT *)temp_4kb_buffer;
+						diffcachepmt->tong[diffcachepmt->page_map_count].m_lpn = 
+							cached_page_table.tong[in_temp].lpn % LP_COUNT_PER_PMT_GROUP;
+						
+						diffcachepmt->tong[diffcachepmt->page_map_count].ppn.pbaddr = 
+							lpn_loc[(cached_page_table.tong[in_temp].lpn % LP_COUNT_PER_PMT_GROUP)].pbaddr;
+						diffcachepmt->tong[diffcachepmt->page_map_count].ppn.pgofset =
+							lpn_loc[(cached_page_table.tong[in_temp].lpn % LP_COUNT_PER_PMT_GROUP)].pgofset;
+
+						diffcachepmt->page_map_count++;
+					}
+
+					if (diffcachepmt->page_map_count == MAX_PMT_LOG_UPT_CNT)
+					{
+						page_loc_count.page_group_count[victim_page_group_index] = 65;
+					}
+#endif
+
+					pmt_misc.updated[in_temp] = 0;
+					cnt++;
+				}
+
+				in_temp++;
+			} while (in_temp < L2P_MAP_CACHE_MAX_COUNT);
+
+			if (pmt_misc.updated[temp] != 0) { DBG_ASSERT(0); }
+
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+			if (buf_addr_start == 4096)
+			{
+				victim_page_group_index2 = victim_page_group_index;
+				temp++;
+
+				if (temp < L2P_MAP_CACHE_MAX_COUNT)
+				{
+					continue;
+				}
+				else
+				{
+					break;
+				}
+			}
+#endif
+//			if (victim_page_group_index2 == 0xFFFFFFFF && buf_addr_start == 0)
+//			{
+//				DBG_ASSERT(0);
+//			}
+
+#if (PMT_STORE_DISTANCE)
+			{
+				extern STATISTICS statics;
+
+				if (statics.aged == 1)
+				{
+					//printf("%d\t%d\t%d\t%d\n", lpn_grouped[0], lpn_grouped[1], lpn_grouped[2], lpn_grouped[3]);
+					
+
+					if (lpn_grouped[0] > 0 && lpn_grouped[1] == 0 && lpn_grouped[2] == 0 && lpn_grouped[3] == 0)
+					{
+						statics.lpn_check_group[0]++;
+					}
+					else if (lpn_grouped[0] == 0 && lpn_grouped[1] > 0 && lpn_grouped[2] == 0 && lpn_grouped[3] == 0)
+					{
+						statics.lpn_check_group[0]++;
+					}
+					else if (lpn_grouped[0] == 0 && lpn_grouped[1] == 0 && lpn_grouped[2] > 0 && lpn_grouped[3] == 0)
+					{
+						statics.lpn_check_group[0]++;
+					}
+					else if (lpn_grouped[0] == 0 && lpn_grouped[1] == 0 && lpn_grouped[2] == 0 && lpn_grouped[3] > 0)
+					{
+						statics.lpn_check_group[0]++;
+					}
+					else if (lpn_grouped[0] > 0 && lpn_grouped[1] > 0 && lpn_grouped[2] == 0 && lpn_grouped[3] == 0)
+					{
+						statics.lpn_check_group[1]++;
+					}
+					else if (lpn_grouped[0] == 0 && lpn_grouped[1] == 0 && lpn_grouped[2] > 0 && lpn_grouped[3] > 0)
+					{
+						statics.lpn_check_group[1]++;
+					}
+					else
+					{
+						statics.lpn_check_group[2]++;
+					}
+
+				}
+			}
+
+#endif
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+			ret = __store_page_map(victim_page_group_index2, victim_page_group_index);
+
+			victim_page_group_index2 = 0xFFFFFFFF;
+			store_meta = 0;
+#else
+			ret = __store_page_map(victim_page_group_index);
+#endif
+			if (ret != 0)
+			{
+				DBG_ASSERT(0);
+			}
+
+		}
+
+		temp++;
+	} while (temp < L2P_MAP_CACHE_MAX_COUNT);
+
+#if (FTL_TYPE & FTL_BASELINE_EXT)
+	if (store_meta == 1)
+	{
+		if (victim_page_group_index2 != victim_page_group_index)
+		{
+			DBG_ASSERT(0);
+		}
+		ret = __store_page_map(victim_page_group_index, 0xFFFFFFFF);
+	}
+#endif
+
+	return cnt;
+
+}
+
+int _flush_pbt(void)
+{
+	int ret = 0;
+	int cnt;
+	int temp;
+	int in_temp;
+	int is_loaded_full;
+	unsigned int phyloc;
+	PBTPERVALIDPAGE *setofpb = (PBTPERVALIDPAGE *)temp_buffer;
+
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+	DIFFCACHEBLOCK *diffblockcache;
+	unsigned int diffloc;
+	unsigned int temp2;
+#endif
+
+	temp = 0;
+	cnt = 0;
+	do
+	{
+		if (pbt_misc.updated[temp] > 0)
+		{
+			int pb_row_idx = (cached_block_table.tong[temp].pbaddr / PB_COUNT_PER_VALID_PAGE);
+
+			in_temp = 0;
+			is_loaded_full = 0;
+			do
+			{
+				if (((cached_block_table.tong[in_temp].pbaddr / PB_COUNT_PER_VALID_PAGE) == pb_row_idx) &&
+					(pbt_misc.updated[in_temp] > 0))
+				{
+					if (is_loaded_full == 0)
+					{
+						phyloc = ftl_context.pbt[pb_row_idx];
+
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+						diffblockcache = (DIFFCACHEBLOCK *)temp_4kb_buffer;
+						diffloc = ftl_context.pbt_log[pb_row_idx];
+
+						memset(diffblockcache, 0xFF, sizeof(DIFFCACHEBLOCK));
+						diffblockcache->block_map_count = 0;
+#endif
+
+						if (phyloc < MAX_META_PM_ADDR)
+						{
+
+#if ((FTL_TYPE & FTL_SPFTL) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+							nand_read_4((phyloc / NAND_PAGES_PER_BLOCK),
+								(phyloc%NAND_PAGES_PER_BLOCK), temp_buffer);
+#else
+
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+							Latency4KBforPBT = 1;
+#endif
+							nand_read((phyloc / NAND_PAGES_PER_BLOCK),
+								(phyloc%NAND_PAGES_PER_BLOCK), temp_buffer);
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+							Latency4KBforPBT = 0;
+#endif
+
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+							diffblockcache = (DIFFCACHEBLOCK *)temp_4kb_buffer;
+							diffloc = ftl_context.pbt_log[pb_row_idx];
+
+							if (diffloc != 0xFFFF)
+							{
+								nand_read_4((diffloc / NAND_PAGES_PER_BLOCK), (diffloc % NAND_PAGES_PER_BLOCK),
+									(unsigned char*)temp_4kb_buffer);
+
+								if (diffblockcache->block_map_count > 0)
+								{
+									temp2 = 0;
+									do
+									{
+										setofpb->physicalblocks[diffblockcache->blockinfo_blocks[temp2].block_index_for_log].erscnt =
+											diffblockcache->blockinfo_blocks[temp2].erase_count;
+
+										setofpb->physicalblocks[diffblockcache->blockinfo_blocks[temp2].block_index_for_log].vpcnt =
+											diffblockcache->blockinfo_blocks[temp2].valid_page_count;
+
+										temp2++;
+									} while (temp2 < diffblockcache->block_map_count);
+								}
+							}
+
+#endif
+
+#endif
+
+						}
+						else
+						{
+							memset(temp_buffer, 0xFF, sizeof(temp_buffer));
+						}
+
+						is_loaded_full = 1;
+					}
+
+					int temp_pb_column_idx =
+						(cached_block_table.tong[in_temp].pbaddr % PB_COUNT_PER_VALID_PAGE);
+
+					setofpb->physicalblocks[temp_pb_column_idx].vpcnt =
+						cached_block_table.tong[in_temp].pbunit.vpcnt;
+
+					setofpb->physicalblocks[temp_pb_column_idx].erscnt =
+						cached_block_table.tong[in_temp].pbunit.erscnt;
+
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+					if (diffblockcache->block_map_count < 64) // 511
+					{
+						diffblockcache = (DIFFCACHEBLOCK *)temp_4kb_buffer;
+
+						diffblockcache->blockinfo_blocks[diffblockcache->block_map_count].erase_count
+							= setofpb->physicalblocks[temp_pb_column_idx].erscnt;
+
+						diffblockcache->blockinfo_blocks[diffblockcache->block_map_count].valid_page_count
+							= setofpb->physicalblocks[temp_pb_column_idx].vpcnt;
+
+						diffblockcache->blockinfo_blocks[diffblockcache->block_map_count].block_index_for_log
+							= temp_pb_column_idx;
+
+						diffblockcache->block_map_count++;
+					}
+
+					if (diffblockcache->block_map_count == 64) // 511
+					{
+						block_group_loc_count.block_group_count[pb_row_idx] = 64;
+					}
+#endif
+
+					pbt_misc.updated[in_temp] = 0;
+					cnt++;
+				}
+
+				in_temp++;
+			} while (in_temp < PB_CAHCE_MAX_COUNT);
+
+			ret = __store_data_block_info(pb_row_idx);
+
+			if (ret < 0)
+			{
+				DBG_ASSERT(0);
+			}
+		}
+
+		temp++;
+	} while (temp < PB_CAHCE_MAX_COUNT);
+
+	return cnt;
+}
+
+int _store_ftl_context(void)
+{
+	METALOG *globalcxt;
+
+	globalcxt = &ftl_context.uptgxtblk;
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+	unsigned int temp = ++global_cxt_loc_count.global_cxt_count;
+	
+	if (temp < 64)
+	{
+		if (ftl_context.sp_uptgxtblk.fpofset >= SLCNAND_PAGES_PER_BLOCK)
+		{
+			nand_erase(ftl_context.sp_uptgxtblk.pbaddr);
+			ftl_context.sp_uptgxtblk.erscnt++;
+
+			statics.meta_ftl_context_erase_4++;
+			ftl_context.sp_uptgxtblk.fpofset = 0;
+		}
+
+		nand_program_4(ftl_context.sp_uptgxtblk.pbaddr,
+			ftl_context.sp_uptgxtblk.fpofset, (unsigned char*)diff_global_cxt);
+
+		ftl_context.sp_uptgxtblk.fpofset++;
+
+		statics.meta_page_count++;
+		statics.meta_ftl_context_count_4++;
+		statics.meta_ftl_context_count++;
+
+		return 0;
+	}
+
+	global_cxt_loc_count.global_cxt_count = 0;
+	diff_global_cxt->loc_cnt = 0;
+	diff_global_cxt->log_cnt = 0;
+
+#endif
+
+	if (globalcxt->fpofset >= SLCNAND_PAGES_PER_BLOCK)
+	{
+		METAGCBLK* p_freeblock = &ftl_context.metagcblk;
+		int temp_block;
+		int temp_erase_count;
+		int fb_fpofset;
+
+		nand_erase(p_freeblock->pbaddr);
+		p_freeblock->erscnt++;
+		fb_fpofset = 0;
+
+		// switch block
+		temp_block = p_freeblock->pbaddr;
+		temp_erase_count = p_freeblock->erscnt;
+
+		p_freeblock->pbaddr = globalcxt->pbaddr;
+		p_freeblock->erscnt = globalcxt->erscnt;
+
+		globalcxt->pbaddr = temp_block;
+		globalcxt->erscnt = temp_erase_count;
+		globalcxt->fpofset = fb_fpofset;
+
+		if (globalcxt->pbaddr == 1)
+		{
+			DBG_ASSERT(0);
+		}
+
+		if (gxtptrblk.fpofset >= SLCNAND_PAGES_PER_BLOCK)
+		{
+			unsigned int next_block;
+
+			next_block = ((++gxtptrblk.pbaddr) % 2);
+
+			nand_erase(next_block);
+
+			if (next_block == 0)
+			{
+				statics.meta_ftl_0_block_erase++;
+			}
+			else
+			{
+				statics.meta_ftl_1_block_erase++;
+			}
+
+			gxtptr.erscnt[next_block]++;
+			gxtptrblk.pbaddr = next_block;
+			gxtptrblk.fpofset = 0;
+		}
+
+		gxtptr.age--;
+
+
+#if (FTL_TYPE & FTL_SPFTL)
+		nand_program_4(gxtptrblk.pbaddr,
+			gxtptrblk.fpofset, (unsigned char*)&gxtptr);
+
+#else
+		nand_program(gxtptrblk.pbaddr,
+			gxtptrblk.fpofset, (unsigned char*)&gxtptr);
+
+#endif
+
+		if (gxtptrblk.pbaddr == 0)
+		{
+			statics.meta_ftl_0_block_write_page_count++;
+		}
+		else if (gxtptrblk.pbaddr == 1)
+		{
+			statics.meta_ftl_1_block_write_page_count++;
+		}
+		else
+		{
+			printf("gxtptrblk address error\n");
+			DBG_ASSERT(0);
+		}
+
+		gxtptrblk.fpofset++;
+
+		statics.meta_ftl_context_erase_8++;
+
+		statics.num_gxt_gc_cnt++;
+
+//#if (FTL_TYPE & FTL_SPFTL_2KB)
+//		nand_program_4(gxtptrblk.pbaddr,
+//			gxtptrblk.fpofset, (unsigned char*)&gxtptr);
+//
+//		gxtptrblk.fpofset++;
+//#endif
+
+	}
+
+
+#if (FTL_TYPE & FTL_SPFTL)
+	// store cxt
+	nand_program_4(globalcxt->pbaddr,
+		globalcxt->fpofset, (unsigned char*)&ftl_context);
+#else
+	// store cxt
+	nand_program(globalcxt->pbaddr,
+		globalcxt->fpofset, (unsigned char*)&ftl_context);
+#endif
+
+
+	globalcxt->fpofset++;
+
+	statics.meta_page_count++;
+	statics.meta_ftl_context_count++;
+
+#if (FTL_TYPE & FTL_SPFTL_2KB)
+	// store cxt
+	nand_program_4(globalcxt->pbaddr,
+		globalcxt->fpofset, (unsigned char*)&ftl_context);
+
+	globalcxt->fpofset++;
+
+	statics.meta_page_count++;
+	statics.meta_ftl_context_count++;
+#endif
+
+	//printf("%d\n", globalcxt->fpofset);
+
+	return 0;
+}
+
+// FTL_Write(sector address requested, sector count requested)
+//
+// while sector count requested > 0 do
+//		temporary index in cached PMT table <- _load_Page_Map(logical page translated)
+//		_check_Update_Block()
+//		_write_Page(update block, freepageoffset)
+//		update cached PMT table with temporary index <- update block and freepageoffset
+//		if the previous block mapping of page written != update block then
+//			temporary index in cached PBT table <- _load_PBT_Information(previous block mapping)
+//			update cached PBT table with temporary index <- validpagecount--
+//			update GXT with the previous block mapping and validpagecount decreased
+//		else
+//			update block validpagecount--
+//		end
+//		update block validpagecount++
+//		update block freepageoffset++
+//		if update block freepageoffset == block's last page offset then
+//			_flush_PMT()
+//			_flush_PBT()
+//		end
+// end
+
+int ftl_write(unsigned int rcv_sector_addr, unsigned int rcv_sector_count)
+{
+	unsigned int total_program_sector_count;
+	unsigned int check_prev_map;
+
+	int start_sector_addr = (rcv_sector_addr % SECTORS_PER_PAGE);
+	int current_lpn = (rcv_sector_addr / SECTORS_PER_PAGE);
+	int program_sector_count = (SECTORS_PER_PAGE - start_sector_addr);
+
+	int map_idx;
+	//int flush_lpn_cnt;
+	//int flush_pb_cnt;
+
+	// per page program
+	total_program_sector_count = 0;
+	do
+	{
+		int ret;
+		int free_page;
+		int write_physical_block;
+		unsigned int previous_map;
+
+		ret = _check_update_block();
+
+		if (ret != 0)
+		{
+			printf("get log block error : %d error \n", ret);
+			DBG_ASSERT(0);
+		}
+
+		map_idx = _load_page_map(current_lpn * SECTORS_PER_PAGE);
+
+		write_physical_block = ftl_context.uptblk.pbaddr;
+		free_page = ftl_context.uptblk.fpofset;
+
+		// previous map
+		previous_map = cached_page_table.tong[map_idx].ppn;
+
+		nand_write_spare(write_physical_block, free_page, current_lpn);
+
+		statics.user_block_8++;
+
+		statics.usr_page_cnt++;
+
+		// current
+		cached_page_table.tong[map_idx].lpn = current_lpn;
+		cached_page_table.tong[map_idx].ppn =
+			((write_physical_block * NAND_PAGES_PER_BLOCK) + free_page);
+
+		pmt_misc.updated[map_idx] = 1;
+
+		// check previous map, whether pre map exists in updateblock
+		check_prev_map = 0;
+		if (ftl_context.uptblk.pbaddr ==
+			(previous_map / NAND_PAGES_PER_BLOCK))
+		{
+			check_prev_map = 1;
+			ftl_context.uptblk.vpcnt--;
+		}
+
+		// check prev map is in free/data
+		if (check_prev_map == 0)
+		{
+			unsigned int prev_block = (previous_map / NAND_PAGES_PER_BLOCK);
+			//unsigned int prev_block_idx = (prev_block % PB_COUNT_PER_VALID_PAGE);
+
+			if ((previous_map / NAND_PAGES_PER_BLOCK) <= TOTAL_BLOCK_COUNT)
+			{
+				int cache_pb_idx = _load_data_block_info(prev_block);
+
+				if (cached_block_table.tong[cache_pb_idx].pbunit.vpcnt > 0)
+				{
+					cached_block_table.tong[cache_pb_idx].pbunit.vpcnt--;
+				}
+				else
+				{
+					printf("db valid count mismatch\n");
+					DBG_ASSERT(0);
+				}
+
+				_update_min_db_valid_count(prev_block,
+					cached_block_table.tong[cache_pb_idx].pbunit.vpcnt,
+					cached_block_table.tong[cache_pb_idx].pbunit.erscnt, PBT_NO_STORE);
+
+				pbt_misc.updated[cache_pb_idx] = 1;
+			}
+		}
+
+		ftl_context.uptblk.vpcnt++;
+		ftl_context.uptblk.fpofset++;
+/*
+		// just for 1 updateblock scanning at power-on state to recovery metadata
+		if (ftl_context.uptblk.fpofset >= NAND_PAGES_PER_BLOCK)
+		{
+			// flush pbt, pmt 둘 다 수행한다.
+			flush_lpn_cnt = _flush_lpn();
+			flush_pb_cnt = _flush_pbt();
+			//printf("flush lpn count : %d\n",flush_lpn_cnt);
+
+			if (flush_lpn_cnt < 0 || flush_pb_cnt < 0)
+			{
+				printf("flush -1 ret\n");
+			}
+		}
+*/
+		total_program_sector_count += program_sector_count;
+		current_lpn++;
+		program_sector_count = SECTORS_PER_PAGE;
+
+		statics.host_pages++;
+
+	} while (total_program_sector_count < rcv_sector_count);
+
+	statics.host_sectors += rcv_sector_count;
+
+	//	{
+	//		int temp1 = 0;
+	//		int stemp = 0;
+	//		do
+	//		{
+	//			if (pbt_misc.updated[temp1] > 0)
+	//			{
+	//				stemp++;
+	//			}
+	//			temp1++;
+	//		} while (temp1 < PB_CAHCE_MAX_COUNT);
+	//
+	//		printf("%d ",stemp);
+	//	}
+	//{
+	//	unsigned int map_idx = _load_page_map(905090 * SECTORS_PER_PAGE);
+
+	//	printf("[%d] %d\n", map_idx, cached_page_table.tong[map_idx].ppn);
+	//	
+	//	if (cached_page_table.tong[map_idx].ppn != 914690)
+	//	{
+	//		DBG_ASSERT(0);
+	//	}
+	//}
+
+	return 0;
+}
+
+#if ((FTL_TYPE & FTL_SPFTL_MIXED) || (FTL_TYPE & FTL_SPFTL_LOGGING))
+void add_diff_logs(unsigned int index, LOG* plog, unsigned int type)
+{
+	if (diff_global_cxt->log_cnt >= 225)
+	{
+		//DBG_ASSERT(0);
+		global_cxt_loc_count.global_cxt_count = 64;
+		_store_ftl_context();
+	}
+
+	diff_global_cxt->diff_logs[diff_global_cxt->log_cnt].log.erscnt = plog->erscnt;
+	diff_global_cxt->diff_logs[diff_global_cxt->log_cnt].log.fpofset = plog->fpofset;
+	diff_global_cxt->diff_logs[diff_global_cxt->log_cnt].log.pbaddr = plog->pbaddr;
+	diff_global_cxt->diff_logs[diff_global_cxt->log_cnt].log.vpcnt = plog->vpcnt;
+	diff_global_cxt->diff_logs[diff_global_cxt->log_cnt].type = type;
+	diff_global_cxt->diff_logs[diff_global_cxt->log_cnt].index = index;
+
+	diff_global_cxt->log_cnt++;
+}
+
+void add_diff_locs(unsigned int index, unsigned int value, unsigned int type)
+{
+	if (diff_global_cxt->loc_cnt >= 225)
+	{
+		//DBG_ASSERT(0);
+		global_cxt_loc_count.global_cxt_count = 64;
+		_store_ftl_context();
+	}
+
+	diff_global_cxt->diff_loc[diff_global_cxt->loc_cnt].index = index;
+	diff_global_cxt->diff_loc[diff_global_cxt->loc_cnt].locations = value;
+	diff_global_cxt->diff_loc[diff_global_cxt->loc_cnt].type = type;
+
+	diff_global_cxt->loc_cnt++;
+}
+#endif
