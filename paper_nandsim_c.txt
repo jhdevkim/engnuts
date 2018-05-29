@@ -1,0 +1,343 @@
+/*
+ * NANDSIM.c
+ *
+ *  Created on: 2016. 12. 6.
+ *      Author: 김정훈
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "RAMNAND.h"
+#include "SPFTL.h"
+
+typedef struct
+{
+	unsigned int page_bitmap[4];
+} PAGEBITMAP;
+
+typedef struct
+{
+	unsigned int lpn;
+} PAGESPARE;
+
+unsigned char* nand_chip0;
+PAGESPARE* nand_chip0_spare;
+
+PAGEBITMAP* nand_chip0_bitmap_for_nop;
+
+int nand_size = (NAND_PAGE_SIZE * META_BLOCK_COUNT *
+	NAND_PAGES_PER_BLOCK * sizeof(unsigned char));
+
+//unsigned char nand_chip0[75*1024*1024];
+//heap corruption 확인하려면 배열로 선언하고 돌려보면 된다.
+
+int nand_chip0_spare_size = (TOTAL_BLOCK_COUNT * NAND_PAGES_PER_BLOCK * sizeof(PAGESPARE));
+
+int nand_bitmap_size = (META_BLOCK_COUNT * sizeof(PAGEBITMAP));
+
+void ram_nand_init()
+{
+
+	nand_chip0 = (unsigned char *)malloc(nand_size);
+
+	if (nand_chip0 == NULL)
+	{
+		printf("memory allocation chip0 error\n");
+		DBG_ASSERT(0);
+	}
+
+	nand_chip0_spare = (PAGESPARE *)malloc(nand_chip0_spare_size);
+
+	if (nand_chip0_spare == NULL)
+	{
+		printf("memory allocation chip0 spare error\n");
+		DBG_ASSERT(0);
+	}
+
+	nand_chip0_bitmap_for_nop =
+		(PAGEBITMAP*)malloc(nand_bitmap_size);
+
+	if (nand_chip0_bitmap_for_nop == NULL)
+	{
+		printf("memory allocation chip0 bitmap error\n");
+		DBG_ASSERT(0);
+	}
+
+	memset(nand_chip0, 0x00, META_BLOCK_COUNT * 1024 * 1024);
+
+	memset(nand_chip0_bitmap_for_nop, 0x00, nand_bitmap_size);
+
+	printf("nand size : %d Mbytes\n", nand_size / 1024 / 1024);
+
+	memset(nand_chip0_spare, 0xFF, nand_chip0_spare_size);
+
+	printf("nand spare size : %d Mbytes\n", nand_chip0_spare_size / 1024 / 1024);
+}
+
+void ram_nand_free()
+{
+
+	if (nand_chip0 != NULL)
+	{
+		printf("nand_chip0 is deallocated\n");
+		free(nand_chip0);
+	}
+
+	if (nand_chip0_spare != NULL)
+	{
+		printf("nand_chip0_spare is deallocated\n");
+		free(nand_chip0_spare);
+	}
+
+	if (nand_chip0_bitmap_for_nop != NULL)
+	{
+		printf("nand_chip0_bitmap_for_nop is deallocated\n");
+		free(nand_chip0_bitmap_for_nop);
+	}
+
+}
+
+int nand_program(unsigned int block, unsigned int page, unsigned char* data)
+{
+	int physical_page = ((block << 7) + page);
+	int physical_idx = (physical_page << 13);			// page * NAND_PAGE_SIZE(8192)
+
+	int page_index = (page >> 5);
+	int page_remainder = (page & 0x1f);
+
+	if (physical_idx >= nand_size)
+	{
+		return -1;
+	}
+
+	if (nand_chip0_bitmap_for_nop[block].page_bitmap[page_index] &
+		(0x01 << page_remainder))
+	{
+		printf("nop error\n");
+		DBG_ASSERT(0);
+	}
+
+	nand_chip0_bitmap_for_nop[block].page_bitmap[page_index] |= (0x01 << page_remainder);
+
+	memcpy((unsigned char*)(nand_chip0 + physical_idx), data, NAND_PAGE_SIZE);
+
+	{
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+		extern unsigned int Latency4KBforPBT;
+
+		extern STATISTICS statics;
+
+		if (Latency4KBforPBT == 0)
+		{
+			statics.nand_tDMA += 8;
+			statics.nand_tProg++;
+
+		}
+		else
+		{
+			statics.nand_tDMA += 4;
+			statics.nand_tProg++;
+		}
+#else
+		extern STATISTICS statics;
+
+		statics.nand_tDMA += 8;
+		statics.nand_tProg++;
+#endif
+	}
+
+	return 0;
+}
+
+int nand_program_4(unsigned int block, unsigned int page, unsigned char* data)
+{
+	int physical_page = ((block << 7) + page);
+	int physical_idx = (physical_page << 13);			// page * NAND_PAGE_SIZE(8192)
+
+	int page_index = (page >> 5);
+	int page_remainder = (page & 0x1f);
+
+	if (physical_idx >= nand_size)
+	{
+		return -1;
+	}
+
+	//printf("b:%d p:%d programmed\n",block,page);
+
+	if (nand_chip0_bitmap_for_nop[block].page_bitmap[page_index] &
+		(0x01 << page_remainder))
+	{
+		printf("nop error\n");
+		DBG_ASSERT(0);
+	}
+
+	nand_chip0_bitmap_for_nop[block].page_bitmap[page_index] |= (0x01 << page_remainder);
+
+#if (META_4KB_FIX_FTL)
+	memcpy((unsigned char*)(nand_chip0 + physical_idx), data, (NAND_PAGE_SIZE >> 1));
+#else
+	memcpy((unsigned char*)(nand_chip0 + physical_idx), data, NAND_PAGE_SIZE);
+#endif
+
+	{
+		extern STATISTICS statics;
+#if (FTL_TYPE & FTL_SPFTL_2KB)
+		statics.nand_tDMA += 2;
+		statics.nand_tProg++;
+#else
+		statics.nand_tDMA += 4;
+		statics.nand_tProg++;
+#endif
+	}
+
+	return 0;
+}
+
+int nand_host_progtram(unsigned int block, unsigned int page,
+	unsigned int start_addr, unsigned int sector_count, unsigned char* data)
+{
+	return 0;
+}
+
+int nand_read(unsigned int block, unsigned int page, unsigned char* data)
+{
+	int physical_page = ((block << 7) + page);
+	int physical_idx = (physical_page << 13);
+
+	if (physical_idx >= nand_size)
+	{
+		return -1;
+	}
+
+	memcpy(data, (unsigned char*)(nand_chip0 + physical_idx), NAND_PAGE_SIZE);
+
+	{
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+		extern unsigned int Latency4KBforPBT;
+
+		extern STATISTICS statics;
+
+		if (Latency4KBforPBT == 0)
+		{
+			statics.nand_tDMA += 8;
+			statics.nand_tR++;
+		}
+		else
+		{
+			statics.nand_tDMA += 4;
+			statics.nand_tR++;
+		}
+#else
+		extern STATISTICS statics;
+
+		statics.nand_tDMA += 8;
+		statics.nand_tR++;
+#endif
+
+		
+	}
+
+	return 0;
+
+}
+
+int nand_read_4(unsigned int block, unsigned int page, unsigned char* data)
+{
+	int physical_page = ((block << 7) + page);
+	int physical_idx = (physical_page << 13);
+
+	if (physical_idx >= nand_size)
+	{
+		return -1;
+	}
+
+	memcpy(data, (unsigned char*)(nand_chip0 + physical_idx), (NAND_PAGE_SIZE >> 1));
+
+	{
+#if (FTL_TYPE & FTL_SPFTL_MIXED)
+		extern unsigned int Latency4KBforPMT;
+
+		extern STATISTICS statics;
+
+		if (Latency4KBforPMT == 0)
+		{
+			statics.nand_tDMA += 4;
+			statics.nand_tR++;
+		}
+		else
+		{
+			statics.nand_tDMA += 4;
+		}
+#else
+		extern STATISTICS statics;
+
+#if (FTL_TYPE & FTL_SPFTL_2KB)
+		statics.nand_tDMA += 2;
+		statics.nand_tR++;
+#else
+		statics.nand_tDMA += 4;
+		statics.nand_tR++;
+#endif
+#endif
+	}
+
+	return 0;
+
+}
+
+int nand_erase(unsigned int block)
+{
+	PAGESPARE* spare_start = nand_chip0_spare;
+
+	if (block < META_BLOCK_COUNT)
+	{
+		memset(&nand_chip0_bitmap_for_nop[block], 0x00, sizeof(PAGEBITMAP));
+	}
+
+	memset(spare_start + (block * NAND_PAGES_PER_BLOCK), 0xFF, sizeof(PAGESPARE) * NAND_PAGES_PER_BLOCK);
+
+	{
+		extern STATISTICS statics;
+
+		statics.nand_tErase++;
+	}
+
+	return 0;
+}
+
+unsigned int nand_read_spare(unsigned int block, unsigned int page)
+{
+	int ret;
+	PAGESPARE* spare_start = nand_chip0_spare;
+
+	spare_start = nand_chip0_spare + ((block * NAND_PAGES_PER_BLOCK) + page);
+	ret = spare_start->lpn;
+
+	{
+		extern STATISTICS statics;
+
+		statics.nand_tR++;
+	}
+
+	return ret;
+}
+
+unsigned int nand_write_spare(unsigned int block, unsigned int page, unsigned int lpn)
+{
+	PAGESPARE* spare_start = nand_chip0_spare;
+
+	spare_start = nand_chip0_spare + ((block * NAND_PAGES_PER_BLOCK) + page);
+
+	spare_start->lpn = lpn;
+
+	{
+		extern STATISTICS statics;
+
+		statics.nand_tDMA += 8;
+		statics.nand_tProg++;
+	}
+
+	return 0;
+}
+
