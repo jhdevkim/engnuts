@@ -1,0 +1,302 @@
+
+\documentclass[letterpaper,twocolumn,10pt]{article}
+\usepackage{usenix2019,epsfig,endnotes}
+
+\usepackage{multirow}
+\usepackage[ruled]{algorithm2e}
+\renewcommand{\algorithmcfname}{ALGORITHM}
+\SetAlFnt{\small}
+\SetAlCapFnt{\small}
+\SetAlCapNameFnt{\small}
+\SetAlCapHSkip{0pt}
+\IncMargin{-\parindent}
+\usepackage{algpseudocode}
+
+\begin{document}
+
+%don't want date printed
+\date{}
+
+%make title bold and 14 pt font (Latex default is non-bold, 16 pt)
+\title{\Large \bf Minimizing journaling overhead inherently induced in NAND flash-based storage}
+
+%for single author (just remove % characters)
+\author{
+{\rm Jung-Hoon Kim, Young-Sik Lee}\\
+Samsung Electronics Co., Ltd.
+%\and
+%{\rm Young-Sik Lee}\\
+%Samsung Electronics Co., Ltd.
+%\and
+%{\rm Team Manager}\\
+%Samsung Electronics Co., Ltd.
+% copy the following lines to add more authors
+% \and
+% {\rm Name}\\
+%Name Institution
+} % end author
+
+\maketitle
+
+% Use the following at camera-ready time to suppress page numbers.
+% Comment it out when you first submit the paper for review.
+\thispagestyle{empty}
+
+
+\subsection*{Abstract}
+Flash Translation Layer (FTL) of NAND flash-based storage should own the imperative function that maps user data addresses to NAND flash memory. 
+For the past decade, the capacity that FTL handles has been significantly increased from several mega to terabytes. 
+As a result, Adopting a page mapping to that high capacity needs an extremely huge amount of a page mapping table. 
+To update this mighty page mapping table, FTL can utilize a journaling scheme that maintains only changed data. 
+However, accroding to the journaling scheme, the changed data should be committed to the main page mapping table.
+In random writes, this amount of writes are enormous and can damage NAND flash-based storage performance. 
+In this paper, we propose a new novel FTL scheme, called PIFTL, 
+that partitions the page mapping table to a small set of page mappings, called main data partition, and finally integrate all only updated main data partitions. 
+Therefore, PIFTL minimizes the amount of main data writes inherited from the journaling. 
+The evaluation results show that the amount of main data writes is reduced by up to 48.35\% in real workloads. 
+Consequently, PIFTL improves storage performance roughly from 30.73\% to 48.80\% in real workloads.
+%However, in real workloads, the amount of data writes inherited from journaling was tremendous quantity. 
+%Since the journaling maintains only changed data, restoring to the original page mapping table can be hidden temporarily. 
+%However, the journaling data should be committed to the origin by the limitation, such as a system resource. 
+%In the evaluation with real workloads, the amount of writes committed from journaling was tremendous. 
+
+\section{Introduction}
+\label{sec:Introduction}
+
+To serve plenty of data as a storage device, 
+\textit{Flash Translation Layer (FTL)} of NAND flash-based storage should own the imperative function that maps user data addresses to NAND flash memory. 
+FTL, namely, is a critical conductor to NAND flash-based storage.
+There are various data address mappings, such as a block, hybirid and page mapping that FTL can employ. 
+FTL should decide to use one of them and write userdata to NAND flash memory along the corresponding mapping. 
+Recently, page mapping is the most commonly used scheme and shows the best random performance among others. 
+Considering a logical page (e.g., 4~KiB in size) of host system, such as operating and file system, 
+FTL is applying the granularity of page mapping to NAND flash memory.
+
+The capacity of NAND flash-based storage has been significantly increased from several mega to terabytes for the past decade.
+In case of SSD, the capacity is increased by up to several terabytes in these days. 
+Also, the capacity of embedded storage (e.g., UFS and eMMC) that is a main storage of smart phones is reached to one terabyte. 
+Adopting a page mapping to that high capacity requires an extremely huge amount of page mapping table. 
+If FTL wants to minimize cost of translating address mappings, the significant amount of volatile memory (e.g. DRAM) can be needed. 
+When it comes to SSD, it seems not to be considered but the cost might be a situation. 
+However, in the embedded storage case, its performance is damaged from a tiny volatile memory, which absolutely needs to seek address mappings. 
+
+In addition to solving the translation problem, all page mappings must be consistent and permanent after power cycles and failure. 
+Whenever user data are written to NAND flash-based storage, the corresponding page mappings are changed. 
+To keep up these mapping updates after power cycles, 
+FTL should make the internal writes to the special area, normally called FTL metadata block.
+The space for FTL metadata block is not the small amount if FTL considers the more and more increasing capacity.
+For instance, if FTL employs the 4~KiB granularity of page mapping to route 4~TiB storage capacity, 
+4~GiB block space at least is needed to maintain all page mappings. 
+
+To handle every update to the entire page mappings, 
+the journaling that is commonly used in the most file system can be utilized to FTL page mappings. 
+This is because that the journaling can maintain and keep track of only mapping updates, 
+so that FTL can provisionally avoid to write all updated mappings to their corresponding positions, such as the main data space. 
+Regardless of SSD and embedded storage, however, 
+FTL should prescribe to write all updated mappings to the main data space that will be committed from the journaling. 
+We have implemented this journaling FTL, called JFTL, that is also based on page-level mapping. 
+In JFTL evaluation with real workloads, the write amount of main data was tremendous. 
+Total amount of main data writes is increased by up to 135.94\% of user data writes, which causes storage performance degradation. 
+
+In this paper, we propose a new novel FTL scheme, called \textit{PIFTL}, 
+that partitions a page mapping table to a small set of page mappings, called main data partition, and finally integrate only all updated main data partitions. 
+To begin with, the main data partition is composed of the smaller number of page mappings than a NAND page can entirely have.  
+To keep up all mappings of main data partition, PIFTL extends the number of directory entry that indicates the address of main data partition. 
+Utilizing these main data partitions, PIFTL can minimize the amount of main data writes that inherently induced from the journaling. 
+The evaluation results show that the amount of main data writes is reduced by up to 48.35\% in real workloads. 
+Consequently, PIFTL improves storage performance roughly from 30.73\% to 48.80\% in real workloads.
+
+\section{Background and Motivation}
+
+% NAND Flash memory
+NAND flash memory has become the most popular nonvolatile memory to support storage devices. 
+Since new era of nonvolatile memory comes from three-dimensional (3D) NAND flash memory, 
+NAND flash memory technologies have been markedly improved. 
+To maximize performance of NAND flash memory, 
+I/O data of read and write (i.e., programming) 
+are parallely responded as a NAND page in size (e.g., 16~KiB). 
+Also, since NAND flash memory cannot be overwritten, after a block erase operation that contains multiple NAND pages, 
+the data of those NAND pages can be finally written and updated. 
+To get more efficiency of these repeated operations, FTL manipulates data address mappings. 
+Therefore, in NAND flash memory, the data address mappings should be required in the storage device. 
+
+% Enormous Page mapping table
+In order to map addresses to data, FTL can consider various data mappings, such as a block, hybrid, and page mapping. 
+Since the most of NAND flash-based storage devices have lately focused on the random performance, 
+FTL adopts a page mapping to NAND flash memory. 
+Refering to a host sytem, such as operating or file system, which generally manages data with 4~KiB pages, 
+FTL defines the level of granularity as 4~KiB data mapping equivalent to that of the host system. 
+Comparing to other data mappings, the page mapping requires a notably large mapping table in size. 
+For example, the amount of mapping table needs around 1~GiB space in case of 1~TiB SSD storage or 
+needs about 512~MiB in case of 512~GiB embedded storage. 
+For the random performance, NAND flash-based storage devices are tolerating the enormous amount of page mapping table. 
+%If FTL composes a page mapping table with 4~KiB in size, 
+%the amount of mapping table can be reached to around one over a kilobyte to the storage capacity. 
+
+% SLC Block
+SLC NAND block is known as the most reliable area in NAND flash memory. 
+This is because SLC NAND block has several ten or hundred times more cycles of endurance and retention than MLC and TLC blocks. 
+For these reasons, to gaurantee the consistency and permanently keep up all page mappings of the mapping table, 
+SLC NAND block is typically used to NAND flash-based storage devices, which is normally categorized to a FTL metadata block. 
+%To gaurantee the consistency and keep all page mappings up, 
+%SLC NAND blocks of NAND flash memory are typically used to maintain all page mappings. 
+%This block is normally called FTL metadata block.  
+%SLC NAND block is also known as the most reliable area in NAND flash memory. 
+%This is because SLC NAND block has several ten or hundred times more cycles of endurance and retention 
+%than MLC and TLC blocks. 
+
+% File system Journaling
+Between the huge page mapping table and FTL metadata blocks, 
+FTL has to update and protect page mappings to carry out user writes correctly. 
+In case of a file system, the journaling is adopted to keep track of changed data and only store those data. 
+Similar to the journaling of file system, 
+FTL can utilize the journaling for the mappings and write only updated mappings as a journal entry. 
+To employ the journaling, FTL should manage all journal mapping entries and writes them to 
+different space (e.g., journaling buffer or FTL metadata block), not to main data space, the original location of mappings.
+If this different space for the journaling has the limitation and there are no more space to add a journaling entry, 
+some or all journaling entries should be committed to other spaces, such as the main data space.
+This routine has to be endlessly repeated to utilize the journaling to FTL. 
+%Even though utilizing these SLC NAND blocks and the page mapping table, 
+%FTL has to update page mappings to carry out user writes. 
+%FTL has to prevent NAND flash-based storage from power cycles and failure. 
+%For example, a file system adopts indispensable journaling that keeps track of data and only stores changes of data.
+%If the file system meets a system crash or power failure, those data written by journaling are needed to recover the system. 
+%Similar to journaling of the file system, 
+%FTL can utilize journaling for the data address mapping and write only updated mappings as a journal entry. 
+%FTL journaling should manage all journal mappings entries and 
+%they are needs to be written to different space (e.g., journaling buffer or FTL metadata block) unlike main data space, the original location of mappings. 
+%Since the buffer and FTL metadata block are not enough to keep all changes, the journaling space of FTL has limitation,
+%Due to the limit of journaling, for example, if there is no more space to add a journaling entry to the journaling buffer, 
+%some of journaling entries should be committed to the main data space.
+%This routine has to be endlessly repeated to adopt journaling to FTL. 
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=1.00\columnwidth]{figure/JFTL_structure}
+\caption{The journal data structure and main data for JFTL page mappings in NAND flash-based storage}
+\label{JFTL_structure}
+\end{figure}
+
+%FTL Journaling
+Since the capacity of NAND flash-based storage has been increased, 
+the mapping table in size has also been siginificantly enlarged. 
+To keep up all updated mappings of the enormous mapping table, 
+FTL should employ the journaling to FTL that was mentioned in ~\ref{sec:Introduction} Introduction as JFTL. 
+JFTL uses the limited amount of journal buffer and writes consecutive page mappings to NAND page completely. 
+Figure~\ref{JFTL_structure} shows the structure of the journaling JFTL.
+The structure of main data \textit{Page Mapping Talbe (PMT)} has the consecutive page mappings as many as NAND page in size. 
+When \textit{Logical Page Numbers (LPN)} are commited from the journal,  
+their \textit{Physical Page Number (PPN)} batch updates of the corresponding main data are written four times to NAND flash memory. 
+
+% Main data writes and Motivation
+In this paper, JFTL has been implemented and evaluated with real workloads.
+As a result, we find the amount of main data writes is extremely considerable, especially in case of given preconditions, 
+which assume the storage device has already been written with some amount of user writes. 
+Those results can explain why a lot of internal erases and writes happen in NAND flash-based storage including user writes. 
+Also, we can realize that this result damages the performance of NAND flash-based storage. 
+This motivate us to reduce the overhead of writing main mapping data that are inherited from the journaling. 
+
+\section{PIFTL Architecture}
+
+We propose a new novel FTL, called PIFTL, that \textit{partitions} a page mapping table to a small set of page mappings, called a main data partition, 
+and finally \textit{integrate} only every updated main data partition. 
+Since PIFTL is based on the page-level mapping and the journaling, 
+we hope that all analogous FTLs employ this PIFTL scheme.  
+This is because PIFTL scheme intrinsically reduces the write overhead that is inherited from the journaling. 
+
+\subsection{Partitioning of Main Data}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=1.00\columnwidth]{figure/PIFTL_directory_structure}
+\caption{The extended main data directory entries of PIFTL and integration of the updated main data partitions}
+\label{PIFTL_directory_structure}
+\end{figure}
+
+% FTL  directory 
+Main data of the page mapping table can be defined as a set of page mappings that are composed of consecutive logical pages. 
+In FTL page-level mapping, a directory mapping table can be used to address the main data of the page mapping table. 
+To use the parallelly maximized I/O performance by NAND page, 
+FTL divides the page mapping table to the set of page mappings having as many as NAND page can completely maintain. 
+This structure was depicted as the JFTL implementation in Figure~\ref{JFTL_structure}. 
+%For example, if FTL uses the 4~KiB logical page granularity and refers to 16~KiB NAND page, 
+%a directory entry can express at least continuous 16~MiB logical addresses in range. 
+
+% PIFTL page partition
+However, using the main data as the equal size to NAND page can cause the unnecessary writes 
+when user data are written with random address patterns, especially, if they have even small chunks. 
+Even though small random writes update their mappings to the journaling space, 
+all main data have to be written whenever the journaling is reached to the limit or committed by the event of a power cycle. 
+Namely, this result brings unnecessary writes that have a lot of unchanged data during all main data writes of NAND page. 
+To reduce the unchanged data amount of writes, 
+PIFTL logically partitions main data to a smaller set of page mappings than that of JFTL. 
+Therefore, PIFTL extends the number of directory entry using a small set of page mappings as the main data partition. 
+In the experiment, to determine the small size for the set, 
+PIFTL uses the minimum amount of data write that 
+can be protected with \textit{Error Correction Code (ECC)} in NAND flash-based storage device. 
+However. various small sizes can be available to implement the partition of main data. 
+If the more smaller size is used, the more amount for directory mappings are needed. 
+In the experiment, PIFTL has been implemented and evaluated with 2~KiB main data partition in size. 
+
+% Drawback, Extended directory
+Comparing to JFTL, PIFTL needs the more amount of resource (i.e., volatile memory) for the extended directory entries. 
+This is because the main data partition in small size increases the number of directory entry to entirely map the storage capacity. 
+For example, If PIFTL implements 32~GiB NAND flash-based storage with 16~KiB NAND page, 
+64~KiB is at most needed to maintain a directory mapping table.
+This amount of the volatile memory removes the overhead of translating the directory mappings. 
+Figure~\ref{PIFTL_directory_structure} decribes the directory structure extended and 
+the small main data partitions that are directed from the corresponding directory entries.
+%On the other hand, JFTL only uses 8~KiB to describe the same 32~GiB storage. 
+
+\begin{algorithm}[t]
+\caption{Commit all updated PPNs of journal entries to their corresponding main data partitions}
+\label{alg:commit_journal}
+\begin{algorithmic}[1]
+\algdef{SE}[SUBALG]{Indent}{EndIndent}{}{\algorithmicend\ }%
+\algtext*{Indent}
+\algtext*{EndIndent}
+\Procedure{COMMIT\_MAPPINGS}{ }
+    \State \textbf{for all} {updated} \textit{${LPN_{e}}$} {in journal} \textbf{do}
+    \Indent
+    \State ${Main\_Data\_Partition_{e}}\gets ${Load\_Partition(${LPN_{e}}$)}\tcp*{\textit{Load the main data partition containing ${LPN_{e}}$}}
+    \State \textbf{for all} {updated} \textit{${PPN_{v}}$} {belonging to ${Main\_Data\_Partition_{e}}$} \textbf{do}
+        \Indent
+        \State {Update\_Partition\_Entry(${{PPN_{v}}}$, ${Main\_Data\_Partition_{e}}$)}\tcp*{\textit{Batch update}}
+        \EndIndent
+    \State \textbf{end for}
+    \State \textbf{if} {NAND page is filled with ${Main\_Data\_Partition_{e}}$} \textbf{then}
+    \State {Write\_NAND\_Page(${Main\_Data}$)}\tcp*{\textit{Write ${All Main\_Data\_Partitions}$ to an FTL metadata block}}
+    \Indent
+    \EndIndent
+    \State \textbf{end if}
+    \EndIndent
+    \State \textbf{end for}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Integration of Main Data Partitions}
+
+% Integration
+The main data partition is composed of consecutive logical page mappings in small size. 
+Even though the main data partition has the smaller number of page mappings than a NAND page can have, 
+and if several main data partitions can be gathered and written to NAND flash memory at once, 
+this opportunity gives a possibility to maximize the write amount of updated page mappings. 
+To realize and confirm the possibility in the real world, the user write addresses of real workloads have been analyzed.
+In real workloads, the most of user writes are requested with random addresses and their writes even consists of small chunks. 
+Therefore, the integration of updated main data partitions can reduce the overhead of main data writes induced inherently from the journaling. 
+Algorithm~\ref{alg:commit_journal} implements the integration of main data partitions. 
+There are two points to call \textit{COMMIT\_MAPPINGS} function that executes PPN batch updates of page mappings in the same partition. 
+First, it is when the journaling has no space to add a new journal entry, which accounts to the write amount of one block. 
+And, it is called when FTL ends up garbage collection (GC) of user writes. 
+
+% Integration fragmentation
+Since user data are written and their mappings finally updates main data partitions, 
+the fragmentation of main data partitions can be expected to FTL metadata blocks. 
+This can be happened when the amount of updated main data partitions are not enough to fill up NAND page. 
+If the fragmentation is infinitely allowed to FTL metadata blocks, 
+the number of valid directory entries, the latest updated entries, can be increased by up to several times. 
+As the side effect, these valid directory entries can make the overhead of garbage collection in FTL metadata block. 
+However, this fragmentation drawback of the main data partition can be escaped by the integration of main data partitions. 
+After erasing FTL metadata block, PIFTL always accumulates the fragmented main data partitions. 
+So that PIFTL can minimize the number of fragmented main data partitions in FTL metadata blocks.
