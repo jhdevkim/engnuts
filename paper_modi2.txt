@@ -1,0 +1,157 @@
+
+
+1.
+
+\title{\Large \bf Minimizing the overhead of the internal writes induced by the page mappings in NAND flash-based storage}
+
+
+2.
+
+\subsection*{Abstract}
+For the past decade, NAND flash-based storage capacity has been significantly increased from several mega to terabytes. 
+As a result, Flash Translation Layer (FTL) adopting a page mapping to that high capacity needs an extremely huge amount of a page mapping table. 
+To keep up this mighty page mapping table in NAND flash-based storage, 
+FTL should maintain the special area, called a FTL metadata area.  
+To update the page mapings to this area, FTL has to make the internal mapping writes. 
+Even though FTL adopts a journal scheme that maintains only changed mapping data and writes them at once, especially in random writes, 
+this amount of the internal mapping writes are enormous and can damage NAND flash-based storage performance. 
+In this paper, we propose a new novel FTL scheme, called PIFTL, 
+that partitions the page mapping table to a small set of page mappings, called a mapping data partition, 
+and finally integrate only all the updated mapping data partitions. 
+The evaluation results show that the amount of mapping data writes is reduced by up to 48.35\% in real workloads. 
+Consequently, PIFTL improves the storage performance roughly from 30.73\% to 48.80\% in real workloads.
+%Max delay latency results are needed
+
+%In this mighty page mapping table, all the page mappings must be consistent and permanent. 
+%For this, FTL writes the page mappings to nonvolatile memory or 
+%utilize a journaling scheme that maintains only changed data, 
+%which provisionally can avoid writing all the mapping updates and therefore increase performance. 
+%However, especially in random writes, this amount of the mapping writes are enormous and can damage NAND flash-based storage performance. 
+%Therefore, PIFTL minimizes the amount of mapping data writes induced by the page mappings. 
+%Flash Translation Layer (FTL) of NAND flash-based storage should own the imperative function that maps user data addresses to NAND flash memory. 
+%For the past decade, the capacity that FTL handles has been significantly increased from several mega to terabytes. 
+%and utilizes a journaling scheme that maintains only changed data. 
+%변경된 맵핑들은 이 거대한 곳에서 일관되고 영원히 유지되야 한다.
+%FTL은 이를 위해  mapping table을 저장하고, 또한 일시적으로 저장양을 줄일 수 있는 저널 기법을 사용할 수도 있다.
+%하지만, 특별히 랜덤 라이트 경우에서는, mapping table 저장량은 상당하고, 성능에 영향을 준다.
+%To permanently and consistently keep up this mighty page mapping table, FTL must store the updated page mappings to nonvolatile memory area. 
+%To update this mighty page mapping table, FTL can utilize a journaling scheme that maintains only changed data. 
+%However, accroding to the journaling scheme, the changed data should be committed to the main page mapping table.
+%In random writes, this amount of writes are enormous and can damage NAND flash-based storage performance. 
+%However, in real workloads, the amount of data writes inherited from journaling was tremendous quantity. 
+%Since the journaling maintains only changed data, restoring to the original page mapping table can be hidden temporarily. 
+%However, the journaling data should be committed to the origin by the limitation, such as a system resource. 
+%In the evaluation with real workloads, the amount of writes committed from journaling was tremendous.
+
+
+
+3.
+
+\section{Introduction}
+\label{sec:Introduction}
+
+To serve plenty of data as a storage device, 
+\textit{Flash Translation Layer (FTL)} of NAND flash-based storage should own the imperative function that maps user data addresses to NAND flash memory. 
+FTL, namely, is a critical conductor to NAND flash-based storage.
+There are various data address mappings, such as a block, hybirid and page mapping that FTL can employ. 
+FTL should decide to use one of them and write userdata to NAND flash memory along the corresponding mapping. 
+Recently, the page mapping is the most commonly used scheme and shows the best random performance among others. 
+Also, FTL has been applying the page mapping granularity 
+while considering a logical page (e.g., 4~KiB in size) of host system, such as operating and file system, 
+
+Since NAND flash-based storage capacity has been significantly increased from several mega to terabytes for the past decade, 
+FTL adopting th page mapping to that high capacity requires an extremely huge amount of page mapping table. 
+For example, the SSD capacity is increased by up to several terabytes in these days. 
+And the capacity of embedded storage (e.g., UFS and eMMC) that is a main storage of smart phones is reached to one terabyte. 
+Therefore, the page mapping table to map all user data for these storage devices is the mighty amount. 
+Besides, to minimize the cost of translating address mappings, the significant amount of volatile memory (e.g. DRAM) can be needed. 
+When it comes to SSD, it seems not to be considered but the cost might be a situation. 
+However, in the embedded storage case, its performance is damaged from a tiny volatile memory, which absolutely needs to seek address mappings. 
+%If FTL wants to minimize cost of translating address mappings, the significant amount of volatile memory (e.g. DRAM) can be needed. 
+%In case of SSD, the capacity is increased by up to several terabytes in these days. 
+%Considering a logical page (e.g., 4~KiB in size) of host system, such as operating and file system, 
+%FTL is applying the granularity of page mapping to NAND flash memory.
+%the capacity of NAND flash-based storage has been significantly increased from several mega to terabytes for the past decade.
+%Adopting a page mapping to that high capacity requires an extremely huge amount of page mapping table. 
+
+In addition to solving the translation problem in the volatile memory, 
+all page mappings must be consistent and permanent by consisting of the tiny volatile memory or after the event of a power cycle and failure. 
+To keep up all the page mappings, 
+FTL should maintain the special area, called a FTL metadata area, in NAND flash-based storage. 
+The FTL metadata area is not the small space if FTL would consider the more and more increasing capacity.
+For instance, if FTL employs the 4~KiB granularity of page mapping to route the 4~TiB storage capacity, 
+4~GiB space for the FTL metadata area at least is needed to manage all page mappings. 
+%FTL should make the internal writes to the special area, normally called a FTL metadata block.
+%Whenever user data are written to NAND flash-based storage, the corresponding page mappings are changed. 
+%To keep up these mapping updates after power cycles, 
+%all page mappings must be consistent and permanent by using the tiny volatile memory or after the event of a power cycle. 
+%after power cycles and failure. 
+
+To handle all the updates for the page mappings in this vast FTL metadata area, 
+FTL should make the internal writes in NAND flash-based storage. 
+No matter where the page mappings are updated, FTL should prescribe to write all the updated page mappings to their corresponding FTL metadata area. 
+To provisionally avoid the several number of writes for the updated mappings, 
+FTL can utilize the journaling scheme that keeps track of only changed mappings and writes them at once. 
+Even though FTL adopts the journaling, the write amount of mapping data can be tremendous. 
+This is because all the updated page mappings, at the end, have to be restored to their corresponding area. 
+%Through the journaling, FTL can take advantage of the better performance and guarantee the consistency of the page mapping. 
+%However, at the end, all the updated page mappings have to be restored to their corresponding area. 
+%Through the journaling, FTL can take advantage of the better performance and guarantee the consistency of the page mapping. 
+%writing all the updated mappings to their corresponding area,  
+%how the page mappings are changed, 
+%FTL should prescribe to write all the updated page mappings to the FTL metadata area. 
+%To provisionally avoid writing all the updated mappings to their corresponding area,  
+%FTL can utilize the journaling scheme that keeps track of only changed mappings and writes them at once. 
+%the journaling that is commonly used in the most file system can be utilized to FTL page mappings. 
+%This is because that the journaling can maintain and keep track of only mapping updates, 
+%so that FTL can provisionally avoid writing all updated mappings to their corresponding positions, such as the main data space. 
+%Regardless of SSD and embedded storage, however, 
+%FTL should prescribe to write all updated mappings to the main data space that will be committed from the journaling. 
+%We have implemented this journaling FTL, called JFTL, that is also based on page-level mapping. 
+%In JFTL evaluation with real workloads, the write amount of main data was tremendous. 
+%Total amount of main data writes is increased by up to 135.94\% of user data writes, which causes storage performance degradation. 
+%To handle every update to the entire page mappings, 
+
+In this paper, we propose a new novel FTL scheme, called \textit{PIFTL}, 
+that partitions a page mapping table to a small set of page mappings, called a mapping data partition, 
+and finally integrate only all the updated mapping data partitions. 
+To begin with, the mapping data partition has to be composed of the smaller number of page mappings than a NAND page can entirely have.  
+To keep up all mappings of the mapping data partition, PIFTL extends the number of directory entry that indicates the address of mapping data partition. 
+Utilizing these mapping data partitions, PIFTL can minimize the amount of mapping data writes that induced by the page mappings. 
+The evaluation results show that the amount of mapping data writes is reduced by up to 48.35\% in real workloads. 
+Consequently, PIFTL improves storage performance roughly from 30.73\% to 48.80\% in real workloads.
+
+
+
+4.
+
+
+\section{Background and Motivation}
+
+
+...
+
+
+%FTL Journaling
+Since the capacity of NAND flash-based storage has been increased, 
+the mapping table in size has also been siginificantly enlarged. 
+To keep up all updated mappings of the enormous mapping table, 
+FTL should employ the journaling to FTL. 
+We have implemented this journaling FTL, called JFTL, that is also based on page-level mapping. 
+JFTL uses the limited amount of journal buffer and writes consecutive page mappings to NAND page completely. 
+Figure~\ref{JFTL_structure} shows the structure of the journaling JFTL.
+The structure of main data \textit{Page Mapping Talbe (PMT)} has the consecutive page mappings as many as NAND page in size. 
+When \textit{Logical Page Numbers (LPN)} are commited from the journal,  
+their \textit{Physical Page Number (PPN)} batch updates of the corresponding main data are written four times to NAND flash memory. 
+%FTL should employ the journaling to FTL that was mentioned in ~\ref{sec:Introduction} Introduction as JFTL. 
+
+% Main data writes and Motivation
+In this paper, JFTL has been evaluated with real workloads.
+
+
+...
+
+
+
+
+
